@@ -1,0 +1,3203 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <!-- ================== ARQUIVOS CSS EXTERNOS (BIBLIOTECAS) ================== -->
+    <link rel="stylesheet" href="css/leaflet.css">
+    <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+    <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+    <link rel="stylesheet" href="css/qgis2web.css">
+    <link rel="stylesheet" href="css/fontawesome-all.min.css">
+    <link rel="stylesheet" href="css/leaflet.photon.css">
+    <link rel="stylesheet" href="css/leaflet-measure.css">
+    <link rel="stylesheet" href="css/leaflet-measure.css">
+
+<link rel="stylesheet" href="css/MarkerCluster.css">
+<link rel="stylesheet" href="css/MarkerCluster.Default.css">
+
+
+    <!-- ================== ESTILOS PERSONALIZADOS (CSS PRÓPRIO) ================== -->
+    <style>
+        /* === LAYOUT GERAL DO MAPA === */
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* === POPUP PERSONALIZADA DAS ARAUCÁRIAS === */
+        .custom-popup {
+            max-width: 380px;
+            padding: 10px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.25);
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+        .custom-popup h2 {
+            margin-top: 0;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .custom-popup img {
+            width: 100%;
+            height: auto;
+            max-height: 320px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: block;
+        }
+        .custom-popup p {
+            margin: 3px 0;
+            line-height: 1.3em;
+        }
+        .route-button {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 6px 10px;
+            background: #cac2c2;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+        }
+        .route-button:hover {
+            background: #1c396d;
+        }
+
+        /* === CABEÇALHO DO POPUP + BOTÃO DE EDIÇÃO DISCRETO === */
+        .popup-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .popup-head h2 {
+            margin: 0;
+        }
+        .edit-gear {
+            font-size: 14px;
+            line-height: 14px;
+            cursor: pointer;
+            opacity: 0.55;
+            user-select: none;
+        }
+        .edit-gear:hover {
+            opacity: 0.9;
+        }
+
+        /* =========================================================
+           PAINÉIS LATERAIS (LEGENDA, BUSCA, FILTROS)
+           ========================================================= */
+        #panels-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .side-panel {
+            position: relative;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            width: 230px;
+            max-width: 230px;
+        }
+
+        .panel-header {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 6px 10px;
+            font-size: 14px;
+        }
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .panel-icon {
+            margin-right: 2px;
+        }
+        .panel-close {
+            position: absolute;
+            right: 8px;
+            top: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .panel-header::after {
+            content: '▾';
+            position: absolute;
+            right: 32px;
+            top: 10px;
+            font-size: 11px;
+        }
+        .panel-header.collapsed::after {
+            content: '▸';
+        }
+
+        .panel-body {
+            margin-top: 10px;
+        }
+
+        #filter-panel label,
+        #filter-panel select,
+        #search-panel label,
+        #search-panel input,
+        #search-panel button,
+        #legend-panel,
+        #legend-panel label,
+        #legend-panel span {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: normal;
+            color: #222;
+        }
+
+        #search-panel strong {
+            font-size: 13px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        #search-panel label {
+            display: block;
+            margin-top: 4px;
+        }
+        #search-panel input {
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 2px;
+        }
+        #search-panel button {
+            margin-top: 6px;
+            margin-right: 4px;
+            padding: 3px 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .search-result {
+            margin-top: 4px;
+            font-size: 11px;
+            color: #555555;
+        }
+
+        #filter-panel strong {
+            font-size: 13px;
+        }
+        #filter-panel label {
+            display: block;
+            margin-top: 4px;
+            font-weight: normal;
+        }
+        #filter-panel select {
+            width: 100%;
+            margin-top: 2px;
+            margin-bottom: 4px;
+        }
+
+        #legend-container .leaflet-control-layers,
+        #legend-container .leaflet-control-layers-tree {
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            width: 100%;
+        }
+        #legend-container .leaflet-control-layers-list {
+            display: block !important;
+            margin: 0;
+        }
+        #legend-container .leaflet-control-layers-toggle {
+            display: none !important;
+        }
+        #legend-container .leaflet-control-layers-base,
+        #legend-container .leaflet-control-layers-overlays,
+        #legend-container .leaflet-control-layers-separator {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+        }
+        #legend-container label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+        #legend-container .leaflet-control-layers-overlays img {
+            width: 18px;
+            height: 18px;
+        }
+        #legend-container .leaflet-control-layers-overlays input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        /* === CONTROLE DE MEDIÇÃO (RÉGUA) === */
+        .leaflet-control-measure-toggle {
+            width: 32px;
+            height: 32px;
+            border-radius: 16px;
+            background: #ffffff;
+            border: 1px solid #cccccc;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #333333;
+        }
+        .leaflet-control-measure-toggle:hover {
+            background: #f0f0f0;
+        }
+        .leaflet-control-measure.leaflet-control-measure-expanded {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+            padding: 8px 10px;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+
+        .leaflet-control-measure .leaflet-control-measure-results,
+        .leaflet-control-measure .results,
+        .leaflet-measure-tooltip,
+        .leaflet-measure-resultpopup,
+        .leaflet-measure-resultpopup * {
+            display: none !important;
+        }
+
+        /* === PAINEL FLUTUANTE DE MEDIÇÃO (PERTO DO POLÍGONO) === */
+        .measure-panel {
+            position: absolute;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            min-width: 200px;
+            display: none;
+        }
+        .measure-panel h3 {
+            margin: 0 0 4px;
+            font-size: 13px;
+        }
+        .measure-panel p {
+            margin: 2px 0;
+        }
+        #edit-panel label { display:block; margin-top:6px; font-size:12px; }
+        #edit-panel input, #edit-panel select { width:100%; box-sizing:border-box; margin-top:2px; }
+
+        .leaflet-control-layers,
+        .leaflet-control-layers-tree {
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            padding: 12px 14px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            width: 230px;
+            max-width: 230px;
+        }
+
+        #logo-municipio{
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    z-index: 1000;
+    height: clamp(60px, 10vw, 110px);
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    max-width: min(38vw, 420px);
+    object-fit: contain;
+}
+#logo-secundario{
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1000;
+    height: clamp(80px, 14vw, 200px);
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    max-width: min(38vw, 520px);
+    object-fit: contain;
+}
+/* Responsivo: evita conflito com controles/painéis em telas pequenas */
+@media (max-width: 900px){
+    #logo-municipio{ bottom: 10px; left: 10px; height: clamp(48px, 14vw, 90px); }
+    #logo-secundario{ bottom: 10px; right: 10px; height: clamp(60px, 18vw, 140px); }
+}
+
+        .leaflet-marker-icon {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .tree-label {
+            color: #ffffff;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            text-align: center;
+            text-shadow:
+                -1px -1px 0 #000,
+                 1px -1px 0 #000,
+                -1px  1px 0 #000,
+                 1px  1px 0 #000,
+                 0   -2px 0 #000,
+                 0    2px 0 #000,
+                -2px  0   0 #000,
+                 2px  0   0 #000;
+        }
+        /* ================== PAINEL DE ESTATÍSTICAS ================== */
+/* ================== PAINEL DE ESTATÍSTICAS ================== */
+#stats-panel {
+    position: absolute;
+    top: 30px;
+    left: 150px;
+    z-index: 1000;
+
+  width: 520px;
+    max-width: calc(100% - 40px);
+    max-height: calc(100% - 40px);
+
+    overflow-y: auto;
+    background: rgba(255,255,255,0.95);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    padding: 16px 18px;
+    display: none;
+}
+
+.stat-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.stat-card {
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 10px 10px;
+    text-align: center;
+    font-size: 13px;
+}
+
+.stat-card strong {
+    display: block;
+    font-size: 18px;  /* maior */
+}
+
+/* Abas */
+.stats-tabs {
+    display: flex;
+    gap: 6px;
+    margin: 8px 0 10px;
+    flex-wrap: wrap;
+}
+
+.stats-tab {
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #f0f0f0;
+    cursor: pointer;
+    font-size: 13px;
+    user-select: none;
+    border: 1px solid #ddd;
+}
+
+.stats-tab.active {
+    background: #ffffff;
+    border: 1px solid #bbb;
+    font-weight: bold;
+}
+
+/* Seções (uma por vez) */
+.stats-section {
+    display: none;
+}
+
+.stats-section.active {
+    display: block;
+}
+
+.stats-section h4 {
+    margin: 8px 0 6px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.tab-print-btn{
+  margin: 6px 0 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+}
+.tab-print-btn:hover{ background:#f3f3f3; }
+/* ================== MODO IMPRESSÃO / PDF ================== */
+        body.print-mode #panels-container,
+        body.print-mode #stats-btn,
+        body.print-mode #stats-panel,
+        body.print-mode #measure-panel,
+        body.print-mode #edit-panel,
+        body.print-mode .leaflet-control-layers,
+        body.print-mode .leaflet-control-locate,
+        body.print-mode .leaflet-control-measure,
+        body.print-mode .leaflet-control-zoom{
+            display:none !important;
+        }
+        body.print-mode #logo-secundario,
+        body.print-mode #logo-municipio{
+            display:none !important;
+        }
+        #print-frame{
+            display:none;
+        }
+        body.print-mode #print-frame{
+            display:block;
+        }
+        #print-frame{
+            position:absolute;
+            left:20px;
+            top:20px;
+            right:20px;
+            bottom:20px;
+            z-index:2000;
+            background:#fff;
+            border-radius:12px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.25);
+            overflow:hidden;
+            font-family: Arial, sans-serif;
+            color:#111;
+        }
+        #print-header{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            padding:12px 14px 10px 14px;
+            border-bottom: 1px solid #ddd;
+        }
+        #print-header .ph-left{
+            display:flex;
+            align-items:center;
+            gap:10px;
+        }
+        #print-header img{
+            height:46px;
+            width:auto;
+            object-fit:contain;
+        }
+        #print-title{
+            font-size:16px;
+            font-weight:bold;
+            margin:0;
+            line-height:1.2;
+        }
+        #print-subtitle{
+            font-size:12px;
+            margin:2px 0 0 0;
+            color:#444;
+        }
+        #print-body{
+            position:absolute;
+            left:0;
+            right:0;
+            top:72px;
+            bottom:0;
+        }
+        #print-map-wrap{
+            position:absolute;
+            left:14px;
+            top:12px;
+            right:280px; /* mais espaço para o painel da direita (não cortar legenda/QR) */
+            bottom:14px;
+            border:1px solid #ddd;
+            border-radius:10px;
+            overflow:hidden;
+            background:#fff;
+        }
+        #print-side{
+            position:absolute;
+            width:250px;
+            right:12px;
+            top:12px;
+            bottom:14px;
+            border:1px solid #ddd;
+            border-radius:10px;
+            padding:10px;
+            overflow:auto;
+            background:#fff;
+            z-index:2600; /* garante que nunca fique “por baixo” do mapa no PDF */
+        }
+        #print-side h4{
+            margin:6px 0 6px;
+            font-size:13px;
+            font-weight:bold;
+        }
+        .print-kpi{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:8px;
+            margin:8px 0 10px;
+        }
+        .print-kpi .k{
+            background:#f5f5f5;
+            border-radius:8px;
+            padding:8px 8px;
+            text-align:center;
+            font-size:12px;
+        }
+        .print-kpi .k strong{
+            display:block;
+            font-size:15px;
+        }
+        .print-legend-item{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            margin:6px 0;
+            font-size:12px;
+        }
+        .print-legend-swatch{
+            width:22px;
+            height:22px;
+            border-radius:6px;
+            border:1px solid #ccc;
+            background:#fff;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            overflow:hidden;
+        }
+        .print-legend-swatch img{ width:18px; height:18px; }
+
+        .legend-dot{
+            width:12px;
+            height:12px;
+            border-radius:50%;
+            display:inline-block;
+        }
+        .legend-dot.green{ background:#00a83a; border:1px solid #006b1b; }
+        .legend-dot.red{ background:#ff2a2a; border:1px solid #b00000; }
+
+        /* Norte (simples) */
+        #north-arrow{
+            position:absolute;
+            left:20px;
+            top:16px;
+            z-index:2500;
+            width:44px;
+            height:44px;
+            border-radius:10px;
+            background: rgba(255,255,255,0.92);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+        }
+
+        
+        @media print{
+          @page { margin: 12mm; }
+          html, body { margin:0 !important; padding:0 !important; background:#fff !important; }
+
+          /* Mostra SOMENTE o #print-frame durante impressão */
+          body.print-mode *{
+            visibility:hidden !important;
+          }
+          body.print-mode #print-frame,
+          body.print-mode #print-frame *{
+            visibility:visible !important;
+          }
+
+          body.print-mode #print-frame{
+            display:block !important;
+            position:absolute !important;
+            left:0 !important;
+            top:0 !important;
+            right:0 !important;
+            width:100% !important;
+            height:auto !important;
+            border-radius:0 !important;
+            box-shadow:none !important;
+            background:#fff !important;
+          }
+
+          /* Evita cortes estranhos */
+          #print-header{ break-inside: avoid; page-break-inside: avoid; }
+          .print-block{ break-inside: avoid; page-break-inside: avoid; }
+          canvas{ max-width: 100% !important; }
+          img{ max-width: 100% !important; }
+        }
+
+/* ====== RELATÓRIO (PDF) — PRINT ESTATÍSTICAS ====== */
+#print-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 14px;
+  border-bottom:1px solid #ddd;
+}
+#print-header .ph-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:180px;
+}
+#print-header .ph-center{
+  flex:1;
+  text-align:center;
+}
+#print-header .ph-right{
+  min-width:180px;
+  text-align:right;
+  font-size:12px;
+  color:#333;
+}
+#print-title{
+  font-size:18px;
+  font-weight:700;
+  margin:0;
+}
+#print-subtitle{
+  font-size:12px;
+  margin:2px 0 4px 0;
+  color:#333;
+}
+#print-filters{
+  font-size:11px;
+  color:#444;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  justify-content:center;
+}
+.pf-pill{
+  display:inline-block;
+  padding:3px 8px;
+  border:1px solid #ccc;
+  border-radius:999px;
+  background:#f6f6f6;
+}
+#print-body{
+  padding:12px 14px;
+  overflow:auto;
+}
+.print-block{
+  border:1px solid #e3e3e3;
+  border-radius:12px;
+  padding:10px 12px;
+  margin:0 0 12px 0;
+  page-break-inside:avoid;
+}
+.print-block h3{
+  margin:0 0 8px 0;
+  font-size:13px;
+}
+.print-focus{
+  font-size:15px;
+  font-weight:800;
+}
+#print-content .stats-section{
+  display:block !important;
+}
+#print-content canvas{
+  max-width:100% !important;
+}
+
+/* Força layout de impressão focado apenas no relatório */
+@page { size: A4 landscape; margin: 10mm; }
+@media print{
+  body, html { margin:0; }
+  body * { visibility:hidden !important; }
+  #print-frame, #print-frame * { visibility:visible !important; }
+  #print-frame{
+    display:block !important;
+    position:fixed !important;
+    left:0 !important; top:0 !important; right:0 !important; bottom:0 !important;
+    border-radius:0 !important;
+    box-shadow:none !important;
+    background:#fff !important;
+  }
+}
+</style>
+
+    <title>A FORÇA DAS ARAUCÁRIAS</title>
+</head>
+<body>
+    <!-- MAPA PRINCIPAL -->
+    <div id="map"></div><!-- BOTÃO DE ESTATÍSTICAS -->
+<div id="stats-btn"
+     style="position:absolute; top:160px; left:10px; z-index:1000;
+            background:#fff; border-radius:50%; width:36px; height:36px;
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.3);">
+    📈
+</div>
+
+<!-- PAINEL DE ESTATÍSTICAS -->
+<div id="stats-panel">
+  <div class="panel-header" style="padding:0; margin-bottom:8px;">
+    <span class="panel-title">
+      <span class="panel-icon">📊</span> Estatísticas
+    </span>
+    <span id="stats-close" class="panel-close" title="Fechar">✕</span>
+  </div>
+
+  <!-- ABAS -->
+  <div class="stats-tabs">
+    <div class="stats-tab active" data-tab="tab7">Resumo</div>
+    <div class="stats-tab" data-tab="tab1">Clonadas × Não</div>
+    <div class="stats-tab" data-tab="tab2">Clonagem por morador</div>
+    <div class="stats-tab" data-tab="tab3">Araucárias por morador</div>
+    <div class="stats-tab" data-tab="tab4">Disponibilidade</div>
+    <div class="stats-tab" data-tab="tab5">Comunidades</div>
+    <div class="stats-tab" data-tab="tab6">Maturação</div>
+    <div class="stats-tab" data-tab="tab8">Ano de clonagem</div>
+    <div class="stats-tab" data-tab="tab9">Matrizes</div>
+    <div class="stats-tab" data-tab="tab10">Matrizes (interno)</div>
+    <div class="stats-tab" data-tab="tabRel">Relatório (PDF)</div>
+  </div>
+
+  <!-- 7) RESUMO (CARDS) -->
+  <div id="tab7" class="stats-section active">
+    
+    <button class="tab-print-btn" data-tab="tab7" data-label="Resumo" type="button">📄 Imprimir esta aba</button>
+<div class="stat-cards">
+      <div class="stat-card"><strong id="st-total">0</strong>Total</div>
+      <div class="stat-card"><strong id="st-prop">0</strong>Proprietários</div>
+      <div class="stat-card"><strong id="st-clonada">0</strong>Clonadas</div>
+      <div class="stat-card"><strong id="st-nao">0</strong>Não clonadas</div>
+      <div class="stat-card"><strong id="st-matrizes">0</strong>Matrizes</div>
+
+      <div class="stat-card"><strong id="st-pct">0%</strong>% clonadas</div>
+      <div class="stat-card"><strong id="st-comu-top">—</strong><span id="st-comu-label">Comunidade líder</span></div>
+      <div class="stat-card"><strong id="st-dispo-next">—</strong><span id="st-dispo-label">Disponibilidades</span></div>
+      <div class="stat-card"><strong id="st-matriz-top">—</strong><span id="st-matriz-label">Matriz líder</span></div>
+    </div>
+    <p style="font-size:12px;color:#555;margin:0;">
+      Os números acima respeitam filtros e edições.
+    </p>
+
+    <div id="st-extra" style="margin-top:10px;">
+      <div id="st-matrizes-box" style="margin-top:8px;">
+        <div style="font-size:12px;font-weight:bold;margin:6px 0 4px;">Matrizes (quantidade)</div>
+        <div id="st-matrizes-list" style="font-size:12px;color:#333;"></div>
+      </div>
+
+      <div id="st-dispo-box" style="margin-top:10px;">
+        <div style="font-size:12px;font-weight:bold;margin:6px 0 4px;">Disponibilidade de clonagem (não clonadas)</div>
+        <div id="st-dispo-list" style="font-size:12px;color:#333;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1) CLONADAS x NÃO CLONADAS -->
+  <div id="tab1" class="stats-section">
+    <h4>Clonadas × Não clonadas</h4>
+    <button class="tab-print-btn" data-tab="tab1" data-label="Clonadas × Não" type="button">📄 Imprimir esta aba</button>
+    <canvas id="chart-clonadas" height="220"></canvas>
+  </div>
+
+  <!-- 2) CLONADAS x NÃO POR MORADOR -->
+  <div id="tab2" class="stats-section">
+    <h4>Clonadas × Não clonadas por proprietário</h4>
+    <button class="tab-print-btn" data-tab="tab2" data-label="Clonagem por morador" type="button">📄 Imprimir esta aba</button>
+    <canvas id="chart-prop-stack" height="260"></canvas>
+  </div>
+
+  <!-- 3) NÚMERO DE ARAUCÁRIAS POR MORADOR -->
+  <div id="tab3" class="stats-section">
+    <h4>Nº de araucárias por proprietário</h4>
+    <button class="tab-print-btn" data-tab="tab3" data-label="Araucárias por morador" type="button">📄 Imprimir esta aba</button>
+    <canvas id="chart-prop" height="240"></canvas>
+  </div>
+
+  <!-- RELATÓRIO (PDF) -->
+
+  <!-- 4) DISPONIBILIDADE DE CLONAGEM -->
+  <div id="tab4" class="stats-section">
+    <h4>Disponibilidade de clonagem (linha do tempo)</h4>
+    <button class="tab-print-btn" data-tab="tab4" data-label="Disponibilidade" type="button">📄 Imprimir esta aba</button>
+    <canvas id="chart-dispo" height="260"></canvas>
+    <p style="font-size:11px;color:#666;margin:6px 0 0;">
+      Clonadas aparecem separadas; as demais são agrupadas pela previsão (ex.: 2026/01).
+    </p>
+  </div>
+
+  <!-- 5) COMUNIDADES -->
+  <div id="tab5" class="stats-section">
+    <h4>Comunidades (clonadas × não clonadas)</h4>
+    <button class="tab-print-btn" data-tab="tab5" data-label="Comunidades" type="button">📄 Imprimir esta aba</button>
+    <canvas id="chart-comu-stack" height="280"></canvas>
+  </div>
+
+  <!-- 6) MÊS DE MATURAÇÃO -->
+  <div id="tab6" class="stats-section">
+    <h4>Mês de maturação</h4>
+    <button class="tab-print-btn" data-tab="tab6" data-label="Maturação" type="button">📄 Imprimir esta aba</button>
+    <canvas id="chart-mes-matura" height="260"></canvas>
+  </div>
+
+  <!-- 8) ANO DE CLONAGEM -->
+  <div id="tab8" class="stats-section">
+    <h4>Clonagens por ano</h4>
+    <button class="tab-print-btn" data-tab="tab8" data-label="Ano de clonagem" type="button">📄 Imprimir esta aba</button>
+    <canvas id="chart-ano-clone" height="260"></canvas>
+  </div>
+
+  <!-- 9) MATRIZES -->
+  <div id="tab9" class="stats-section">
+    <h4>Matrizes (top 12)</h4>
+    <button class="tab-print-btn" data-tab="tab9" data-label="Matrizes" type="button">📄 Imprimir esta aba</button>
+    <canvas id="chart-matriz" height="280"></canvas>
+    <p style="font-size:11px;color:#666;margin:6px 0 0;">
+      Considera o campo <b>matriz</b> preenchido nas feições.
+    </p>
+  </div>
+
+  <!-- 10) MATRIZES (INTERNO) -->
+  <div id="tab10" class="stats-section">
+    <h4>Matrizes (interno) — nomes por extenso</h4>
+    <button class="tab-print-btn" data-tab="tab10" data-label="Matrizes (interno)" type="button">📄 Imprimir esta aba</button>
+
+    <div id="matriz-interno-locked" style="display:none; font-size:12px; color:#b00000; margin:6px 0;">
+      Área restrita. Clique novamente na aba e informe a senha para visualizar os nomes.
+    </div>
+
+    <div id="matriz-interno-content" style="font-size:12px; color:#333;"></div>
+  </div>
+
+  <div id="tabRel" class="stats-section">
+    <h4>Relatório (PDF)</h4>
+
+    <p style="font-size:12px; color:#444; margin:6px 0 10px;">
+      Exporta <b>as estatísticas filtradas</b> exatamente como estão no painel (aba ativa).
+    </p>
+
+    <button id="r-export" type="button" style="margin-top:6px; width:100%; padding:10px 10px; cursor:pointer;">
+      📄 Exportar estatísticas para PDF
+    </button>
+
+    <p style="font-size:11px; color:#555; margin:8px 0 0;">
+      Dica: na janela de impressão, escolha “Salvar como PDF”. Se aparecer data/URL no topo/rodapé,
+      desative “Cabeçalhos e rodapés”.
+    </p>
+  </div>
+
+</div>
+
+    <!-- ÁREA DE IMPRESSÃO (PDF) -->
+    <div id="print-frame">
+      <div id="print-header">
+        <div class="ph-left">
+          <img id="print-logo1" src="images/logoaracauriasbranca.png" alt="Logo">
+          <img id="print-logo2" src="images/BiturunaBemCuidada.jpg" alt="Logo">
+        </div>
+
+        <div class="ph-center">
+          <p id="print-title">Relatório – Projeto das Araucárias</p>
+          <p id="print-subtitle"></p>
+          <div id="print-filters"></div>
+        </div>
+
+        <div class="ph-right">
+          <div id="print-date"></div>
+        </div>
+      </div>
+
+      <div id="print-body">
+        <div id="print-content"></div>
+      </div>
+    </div>
+
+    <!-- CONTÊINER DOS TRÊS PAINÉIS (LEGENDA, BUSCA, FILTROS) -->
+    <div id="panels-container">
+        <!-- PAINEL DE LEGENDA -->
+        <div id="legend-panel" class="side-panel">
+            <div id="legend-header" class="panel-header">
+                <span class="panel-title">
+                    <span class="panel-icon">🧾</span> Legenda
+                </span>
+                <span id="legend-close" class="panel-close" title="Fechar">✕</span>
+            </div>
+            <div id="legend-body" class="panel-body">
+                <div id="legend-container"></div>
+            </div>
+        </div>
+
+        <!-- PAINEL DE FILTROS -->
+        <div id="filter-panel" class="side-panel">
+            <div id="filter-header" class="panel-header">
+                <span class="panel-title">
+                    <span class="panel-icon">📊</span> Filtros
+                </span>
+                <span id="filter-close" class="panel-close" title="Fechar">✕</span>
+            </div>
+            <div id="filter-body" class="panel-body">
+                <label for="f-proprietario">Proprietário</label>
+                <select id="f-proprietario">
+                    <option value="">Todos</option>
+                </select>
+                <label for="f-clonada">Clonada</label>
+<select id="f-clonada">
+  <option value="">Todas</option>
+</select>
+
+                <label for="f-mes-matura">Mês de maturação</label>
+                <select id="f-mes-matura">
+                    <option value="">Todos</option>
+                </select>
+<label for="f-ano-clone">Ano clonagem</label>
+                <select id="f-ano-clone">
+                    <option value="">Todos</option>
+                </select>
+
+                <label for="f-dispo-clone">Disponibilidade de clonagem</label>
+                <select id="f-dispo-clone">
+                    <option value="">Todas</option>
+                </select>
+
+                <label for="f-comunidade">Comunidade</label>
+                <select id="f-comunidade">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAINEL DE MEDIÇÃO (FLUTUANTE) -->
+    <div id="measure-panel" class="measure-panel">
+        <h3>Medição</h3>
+        <p>Nenhuma medição ainda.</p>
+    </div>
+    <div id="edit-panel" class="measure-panel" style="display:none; min-width:280px;">
+  <h3 style="display:flex; align-items:center; justify-content:space-between;">
+    <span>Editar Araucária</span>
+    <span id="edit-close" style="cursor:pointer; opacity:.7;" title="Fechar">✕</span>
+  </h3>
+
+  <label>Proprietário</label>
+  <input id="edit-proprietar" type="text">
+
+  <label>Nº da árvore</label>
+  <input id="edit-num-arvore" type="number" min="1" step="1">
+
+  <label>Matriz</label>
+  <input id="edit-matriz" type="text">
+
+  <label>Mês de maturação</label>
+  <input id="edit-mes-matura" type="text">
+
+  <label>Mês clonagem</label>
+  <input id="edit-mes-clone" type="text">
+
+  <label>Ano clonagem</label>
+  <input id="edit-ano-clone" type="text">
+
+  <label>Clonada</label>
+  <select id="edit-clonada">
+    <option value="">—</option>
+    <option value="Sim">Sim</option>
+    <option value="Não">Não</option>
+  </select>
+
+  <label>Link da foto (Drive)</label>
+  <input id="edit-link-diret" type="text" placeholder="https://drive.google.com/uc?export=view&id=...">
+
+  <div style="margin-top:8px; display:flex; gap:6px;">
+    <button id="edit-cancel" type="button" style="flex:1;">Cancelar</button>
+    <button id="edit-save" type="button" style="flex:1; background:#2c7be5; color:#fff; border:none; border-radius:4px;">Salvar</button>
+  </div>
+
+  <p id="edit-msg" style="margin:6px 0 0; font-size:11px; color:#555;"></p>
+</div>
+
+    <!-- LOGOS (PROJETO E MUNICÍPIO) -->
+    <img id="logo-secundario" src="images/logoaracauriasbranca.png" alt="Projeto Araucárias">
+    <img id="logo-municipio" src="images/BiturunaBemCuidada.jpg" alt="Município de Bituruna">
+
+    <!-- ================== ARQUIVOS JS EXTERNOS (BIBLIOTECAS) ================== -->
+    <script src="js/qgis2web_expressions.js"></script>
+    <script src="js/leaflet.js"></script>
+    <script src="js/leaflet.markercluster.js"></script>
+    <script src="js/L.Control.Layers.Tree.min.js"></script>
+    <script src="js/L.Control.Locate.min.js"></script>
+    <script src="js/leaflet-svg-shape-markers.min.js"></script>
+    <script src="js/leaflet.rotatedMarker.js"></script>
+    <script src="js/leaflet.pattern.js"></script>
+    <script src="js/leaflet-hash.js"></script>
+    <script src="js/Autolinker.min.js"></script>
+    <script src="js/rbush.min.js"></script>
+    <script src="js/labelgun.min.js"></script>
+    <script src="js/labels.js"></script>
+    <script src="js/leaflet.photon.js"></script>
+    <script src="js/leaflet-measure.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script><!-- Novas camadas vetoriais (limites / comunidades / perímetro urbano) -->
+    <script src="data/comunidades_rurais_1.js"></script>
+    <script src="data/bituruna_2.js"></script>
+    <script src="data/perimetro_urbano_3.js"></script>
+
+    <!-- GeoJSON com os pontos das araucárias -->
+    <script src="data/Araucrias2_1.js"></script>
+
+    <!-- ================== SCRIPT PRINCIPAL DO MAPA ================== -->
+    <script>
+        // =====================================================================
+        // 1. CONFIGURAÇÃO BÁSICA DO MAPA
+        // =====================================================================
+       // ================== BASE + DELTA (EDITS) ==================
+var EDITS_STORAGE_KEY = 'araucarias_edits_v1';
+var edits = {}; // { "num_arvore": {campo: valor, ...} }
+
+function getFeatureKey(feature) {
+    var n = feature && feature.properties ? feature.properties['num_arvore'] : null;
+    return (n === null || n === undefined || n === '') ? null : String(n);
+}
+
+function loadEditsFromLocalStorage() {
+    try {
+        var raw = localStorage.getItem(EDITS_STORAGE_KEY);
+        if (raw) edits = JSON.parse(raw) || {};
+    } catch (e) {}
+}
+
+function saveEditsToLocalStorage() {
+    try {
+        localStorage.setItem(EDITS_STORAGE_KEY, JSON.stringify(edits));
+    } catch (e) {}
+}
+
+function applyEditsToFeatures() {
+    if (!window.json_Araucrias2_1) return;
+
+    json_Araucrias2_1.features.forEach(function (feat) {
+        var key = getFeatureKey(feat);
+        if (!key || !edits[key]) return;
+
+        Object.keys(edits[key]).forEach(function (k) {
+            feat.properties[k] = edits[key][k];
+        });
+    });
+}
+
+        var highlightLayer;
+
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' ||
+                e.target.feature.geometry.type === 'MultiLineString') {
+                highlightLayer.setStyle({ color: '#ffff00' });
+            } else {
+                highlightLayer.setStyle({ fillColor: '#ffff00', fillOpacity: 1 });
+            }
+        }
+        // ===== TRAVA DE EDIÇÃO (PIN) =====
+var EDIT_PIN = "1234";                  // sua senha (troque aqui)
+var EDIT_SESSION_KEY = "edit_unlocked"; // flag da sessão
+
+function isEditUnlocked() {
+  return sessionStorage.getItem(EDIT_SESSION_KEY) === "1";
+}
+
+function requestEditUnlock() {
+  if (isEditUnlocked()) return true;
+
+  var pin = prompt("Digite o código para editar:");
+  if (pin === null) return false; // cancelou
+
+  if (pin === EDIT_PIN) {
+    sessionStorage.setItem(EDIT_SESSION_KEY, "1");
+    return true;
+  }
+
+  alert("Código incorreto.");
+  return false;
+}
+
+
+        var map = L.map('map', {
+            zoomControl: false,
+            maxZoom: 28,
+            minZoom: 1
+        }).fitBounds([
+            [-26.238329774118625, -51.49137809711782],
+            [-26.23717774983662, -51.48890590737521]
+        ]);
+
+        var hash = new L.Hash(map);
+
+        map.attributionControl.setPrefix(
+            '<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a>' +
+            ' · <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>' +
+            ' · <a href="https://qgis.org">QGIS</a>'
+        );
+
+        var autolinker = new Autolinker({
+            truncate: { length: 30, location: 'smart' }
+        });
+
+        // =====================================================================
+        // 2. CAMADA DE FUNDO
+        // =====================================================================
+        map.createPane('pane_GoogleSatellite_0');
+        map.getPane('pane_GoogleSatellite_0').style.zIndex = 400;
+
+        var layer_GoogleSatellite_0 = L.tileLayer(
+            'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            {
+                pane: 'pane_GoogleSatellite_0',
+                opacity: 1.0,
+                attribution:
+                    '<a href="https://www.google.at/permissions/geoguidelines/attr-guide.html">' +
+                    'Map data ©2015 Google</a>',
+                minZoom: 1,
+                maxZoom: 28,
+                minNativeZoom: 0,
+                maxNativeZoom: 20
+            }
+        );
+        map.addLayer(layer_GoogleSatellite_0);
+
+        // =====================================================================
+        // 2.1 CAMADAS VETORIAIS ADICIONAIS (NOVAS)
+        //     - Comunidades Rurais (linhas/polígonos)
+        //     - Limite do Município (bituruna)
+        //     - Perímetro Urbano
+        // =====================================================================
+
+        function pop_comunidades_rurais_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    if (layer && layer.closePopup) layer.closePopup();
+                },
+                
+            });
+
+            var popupContent = '<div style="font-family:Arial,sans-serif; font-size:13px;">'
+                + '<b>Comunidade:</b> ' + (feature.properties && feature.properties['comunidade'] ? String(feature.properties['comunidade']) : '')
+                + '</div>';
+            layer.bindPopup(popupContent, { maxHeight: 260 });
+        }
+        
+
+        function pop_bituruna_2(feature, layer) {
+            // Camada do município: sem interação (sem popup/hover/clique)
+        }
+
+        function pop_perimetro_urbano_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    if (layer && layer.closePopup) layer.closePopup();
+                },
+                
+            });
+
+            layer.bindPopup('<b>Perímetro Urbano</b>', { maxHeight: 120 });
+        }
+
+        // Panes (garante que fiquem acima do satélite e abaixo/antes das araucárias)
+        map.createPane('pane_comunidades_rurais_1');
+        map.getPane('pane_comunidades_rurais_1').style.zIndex = 401;
+        map.getPane('pane_comunidades_rurais_1').style['mix-blend-mode'] = 'normal';
+
+        map.createPane('pane_bituruna_2');
+map.getPane('pane_bituruna_2').style.zIndex = 400; // município abaixo das comunidades
+
+
+        map.createPane('pane_perimetro_urbano_3');
+        map.getPane('pane_perimetro_urbano_3').style.zIndex = 401;
+        map.getPane('pane_perimetro_urbano_3').style['mix-blend-mode'] = 'normal';
+
+        // Layers
+        var layer_comunidades_rurais_1 = new L.geoJson(json_comunidades_rurais_1, {
+    attribution: '',
+    interactive: true,  // <-- volta a permitir clique/hover
+    dataVar: 'json_comunidades_rurais_1',
+    layerName: 'layer_comunidades_rurais_1',
+    pane: 'pane_comunidades_rurais_1',
+    onEachFeature: pop_comunidades_rurais_1,  // <-- liga o popup
+    style: function () {
+        return {
+            pane: 'pane_comunidades_rurais_1',
+            opacity: 1,
+            color: 'rgba(158,158,158,1.0)',
+            weight: 2.0,
+            fillOpacity: 0,
+            interactive: true
+            // (pode manter sem fill, mas precisa ser interativo)
+        };
+    }
+});
+
+        var layer_bituruna_2 = new L.geoJson(json_bituruna_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_bituruna_2',
+            layerName: 'layer_bituruna_2',
+            pane: 'pane_bituruna_2',
+            onEachFeature: pop_bituruna_2,
+            style: function () {
+                return {
+                    pane: 'pane_bituruna_2',
+                    opacity: 1,
+                    color: 'rgba(253,218,22,1.0)',
+                    dashArray: '',
+                    lineCap: 'square',
+                    lineJoin: 'bevel',
+                    weight: 3.0,
+                    fillOpacity: 0,
+                    interactive: true
+                };
+            }
+        });
+
+        var layer_perimetro_urbano_3 = new L.geoJson(json_perimetro_urbano_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_perimetro_urbano_3',
+            layerName: 'layer_perimetro_urbano_3',
+            pane: 'pane_perimetro_urbano_3',
+            onEachFeature: pop_perimetro_urbano_3,
+            style: function () {
+                return {
+                    pane: 'pane_perimetro_urbano_3',
+                    opacity: 1,
+                    color: 'rgba(243,13,13,1.0)',
+                    dashArray: '',
+                    lineCap: 'square',
+                    lineJoin: 'bevel',
+                    weight: 4.0,
+                    fillOpacity: 0,
+                    interactive: true
+                };
+            }
+        });
+
+        // Por padrão, deixa visível no mapa (se quiser iniciar desligado, comente algum map.addLayer)
+        map.addLayer(layer_bituruna_2);
+        map.addLayer(layer_comunidades_rurais_1);
+        map.addLayer(layer_perimetro_urbano_3);
+
+        // =====================================================================
+        // 3. TÍTULO / TEXTO
+        // =====================================================================
+        var title = new L.Control({ position: 'topright' });
+        title.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+        };
+        title.update = function () {
+            this._div.innerHTML = '<h2></h2>';
+        };
+        title.addTo(map);
+
+        var abstract = new L.Control({ position: 'topleft' });
+        abstract.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'leaflet-control abstract');
+            this._div.id = 'abstract';
+            abstract.show();
+            return this._div;
+        };
+        abstract.show = function () {
+            this._div.classList.remove('abstract');
+            this._div.classList.add('abstractUncollapsed');
+            this._div.innerHTML = 'Projeto das Araucárias - Felipe Santiago';
+        };
+        abstract.addTo(map);
+
+        // =====================================================================
+        // 4. CONTROLES BÁSICOS (ZOOM, LOCALIZAÇÃO, MEDIÇÃO)
+        // =====================================================================
+        L.control.zoom({ position: 'topleft' }).addTo(map);
+        L.control.locate({ locateOptions: { maxZoom: 19 } }).addTo(map);
+
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares',
+            activeColor: '#2c7be5',
+            completedColor: '#9bd0ff'
+        });
+        measureControl.addTo(map);
+
+        var measureBtn = document.getElementsByClassName('leaflet-control-measure-toggle')[0];
+        if (measureBtn) {
+            measureBtn.innerHTML = '';
+            measureBtn.className += ' fas fa-ruler';
+            measureBtn.title = 'Medir distâncias e áreas';
+        }
+
+        // === MEDIÇÃO: painel flutuante + controle de desenho ==================
+        var measurePanel = document.getElementById('measure-panel');
+        var measurementLayers = [];         // todas as camadas da última medição
+        var measuring = false;              // estamos medindo agora?
+        var measureFinishTimeout = null;    // “gracinha” pra pegar camadas criadas logo após o finish
+
+        // recolhe camadas (linhas/polígonos) adicionadas durante a medição
+        map.on('layeradd', function (ev) {
+            if (!measuring) return;
+
+            var l = ev.layer;
+            // garantimos que seja algo com geometria (linha/polígono)
+            if (l instanceof L.Polyline || l instanceof L.Polygon || (l.getLatLngs && l.getBounds)) {
+                measurementLayers.push(l);
+            }
+        });
+
+        // quando começa a medir
+        map.on('measurestart', function () {
+            measuring = true;
+
+            // cancela timer antigo, se houver
+            if (measureFinishTimeout) {
+                clearTimeout(measureFinishTimeout);
+                measureFinishTimeout = null;
+            }
+
+            // limpa desenhos da medição anterior
+            measurementLayers.forEach(function (l) {
+                if (map.hasLayer(l)) map.removeLayer(l);
+            });
+            measurementLayers = [];
+
+            // limpa também o grupo interno do plugin, se existir
+            if (measureControl && measureControl._measurementLayer) {
+                measureControl._measurementLayer.clearLayers();
+            }
+
+            if (measurePanel) {
+                measurePanel.style.display = 'block';
+                measurePanel.innerHTML =
+                    '<h3>Medição</h3>' +
+                    '<p>Desenhe a linha ou o polígono e finalize com duplo clique ou no botão ✔.</p>';
+            }
+        });
+
+        // quando termina a medição
+        map.on('measurefinish', function (e) {
+            // mantém measuring = true por alguns milissegundos
+            // para capturar camadas que o plugin adicionar logo depois
+            if (measureFinishTimeout) clearTimeout(measureFinishTimeout);
+            measureFinishTimeout = setTimeout(function () {
+                measuring = false;
+            }, 200);
+
+            if (!measurePanel) return;
+
+            var html = '<h3>Medição</h3>';
+
+            var lengthText = (e.lengthDisplay || '')
+                .replace(/Meters/g, 'metros')
+                .replace(/Kilometers/g, 'quilômetros');
+
+            var areaText = (e.areaDisplay || '')
+                .replace(/Sq Meters/g, 'm²')
+                .replace(/Hectares/g, 'hectares');
+
+            if (lengthText) {
+                html += '<p><strong>Comprimento:</strong> ' + lengthText + '</p>';
+            }
+            if (areaText) {
+                html += '<p><strong>Área:</strong> ' + areaText + '</p>';
+            }
+
+            html += '<p><strong>Pontos:</strong> ' + (e.pointCount || 0) + '</p>';
+
+            html +=
+                '<button id="clearMeasureBtn" type="button" ' +
+                'style="margin-top:6px; padding:4px 8px; font-size:12px; ' +
+                'background:#e63946; color:white; border:none; border-radius:4px; cursor:pointer;">' +
+                'Apagar medição</button>';
+
+            // calcula o centro de todas as camadas da medição
+            var bounds = null;
+            measurementLayers.forEach(function (l) {
+                if (l.getBounds) {
+                    if (!bounds) bounds = l.getBounds();
+                    else bounds.extend(l.getBounds());
+                }
+            });
+
+            var center;
+            if (bounds) {
+                center = bounds.getCenter();
+            } else if (e.latlng) {
+                center = e.latlng;
+            } else {
+                center = map.getCenter();
+            }
+
+            var pt = map.latLngToContainerPoint(center);
+
+            measurePanel.innerHTML = html;
+            measurePanel.style.left = (pt.x + 15) + 'px';
+            measurePanel.style.top  = (pt.y - 15) + 'px';
+            measurePanel.style.display = 'block';
+
+            var btn = document.getElementById('clearMeasureBtn');
+            if (btn) {
+                btn.onclick = function () {
+                    // remove todos os desenhos da medição
+                    measurementLayers.forEach(function (l) {
+                        if (map.hasLayer(l)) map.removeLayer(l);
+                    });
+                    measurementLayers = [];
+
+                    if (measureControl && measureControl._measurementLayer) {
+                        measureControl._measurementLayer.clearLayers();
+                    }
+
+                    measurePanel.style.display = 'none';
+                };
+            }
+        });
+
+        // se clicar em qualquer lugar do mapa depois da medição, também apaga tudo
+        map.on('click', function () {
+            if (!measurementLayers.length) return;
+
+            measurementLayers.forEach(function (l) {
+                if (map.hasLayer(l)) map.removeLayer(l);
+            });
+            measurementLayers = [];
+
+            if (measureControl && measureControl._measurementLayer) {
+                measureControl._measurementLayer.clearLayers();
+            }
+
+            if (measurePanel) {
+                measurePanel.style.display = 'none';
+            }
+        });
+
+        // =====================================================================
+        // 5. ÍCONE DA ARAUCÁRIA E POPUP PERSONALIZADO
+        // =====================================================================
+        var pineIcon = L.icon({
+            iconUrl: 'images/araucaria.png',
+            iconSize: [60, 60],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32]
+        });
+        var pineIconRed = L.icon({
+    iconUrl: 'images/araucaria_vermelha.png', // ajuste o nome se for diferente
+    iconSize: [60, 60],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
+});
+
+        var casaIcon = L.icon({
+            iconUrl: 'images/casa.png',
+            iconSize: [30, 30],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32]
+        });
+
+
+
+        function pop_Araucrias2_1(feature, layer) {
+            layer.on({
+                mouseout: function (e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature
+            });
+
+            var props = feature.properties || {};
+
+            // --- Foto ---
+            var driveUrl = props['link_diret'] || '';
+            var imgHtml;
+            if (!driveUrl) {
+                imgHtml = '<p>Sem foto cadastrada.</p>';
+            } else {
+                var match = driveUrl.match(/id=([^&]+)/);
+                var fileId = match ? match[1] : null;
+                var imgUrl = fileId
+                    ? 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1000'
+                    : driveUrl;
+                imgHtml = '<img src="' + imgUrl + '" alt="Foto da araucária">';
+            }
+
+            // --- Rota ---
+            var latlng = layer.getLatLng();
+            var destLat = latlng.lat;
+            var destLng = latlng.lng;
+
+            var originLat = -26.1593017;
+            var originLng = -51.5546079;
+
+            var routeUrl =
+                'https://www.google.com/maps/dir/?api=1' +
+                '&origin=' + originLat + ',' + originLng +
+                '&destination=' + destLat + ',' + destLng +
+                '&travelmode=driving';
+
+            var routeButton =
+                '<a href="' + routeUrl + '" target="_blank" class="route-button">' +
+                '🧭 Rota até esta araucária' +
+                '</a>';
+
+            // --- Regras de exibição (clonada x não clonada) ---
+            var clonadaRaw = (props['Clonada'] || '').toString().trim().toLowerCase();
+            var isClonada = (clonadaRaw === 'sim');
+
+            var isMorador = (clonadaRaw === 'morador');
+
+            // ================== POPUP ESPECIAL: CASA DO MORADOR ==================
+            if (isMorador) {
+                var nomeMorador = (props['proprietar'] || '').toString().trim();
+                var st = moradorStats[nomeMorador] || { total: 0, clonadas: 0, nao: 0 };
+
+                var popupMorador =
+                    '<div class="custom-popup">' +
+                        '<div class="popup-head">' +
+                            '<h2>Morador</h2>' +
+                            '<span class="edit-gear" title="Editar">⚙️</span>' +
+                        '</div>' +
+                        '<p><b>Nome:</b> ' + nomeMorador + '</p>' +
+                        '<p><b>Comunidade:</b> ' + (props['comu_c'] || '') + '</p>' +
+                        '<p><b>Total de araucárias:</b> ' + st.total + '</p>' +
+                        '<p><b>Clonadas:</b> ' + st.clonadas + '</p>' +
+                        '<p><b>Não clonadas:</b> ' + st.nao + '</p>' +
+                        '<p><b>Foto:</b></p>' +
+                        imgHtml +
+                        routeButton +
+                    '</div>';
+
+                layer.bindPopup(popupMorador, {
+                    maxWidth: 380,
+                    autoPan: true,
+                    keepInView: true,
+                    autoPanPaddingTopLeft: [50, 50],
+                    autoPanPaddingBottomRight: [50, 50]
+                });
+                return;
+            }
+
+
+            var comunidade = (props['comu_c'] || '');
+            // Alguns exports podem vir como Dispo_clon (D maiúsculo). Aceitamos os dois.
+            var dispoClone = (props['dispo_clon'] !== undefined && props['dispo_clon'] !== null)
+                ? props['dispo_clon']
+                : (props['Dispo_clon'] !== undefined && props['Dispo_clon'] !== null ? props['Dispo_clon'] : '');
+
+            var detailsHtml = '';
+
+            // Sempre mostra a comunidade
+            detailsHtml += '<p><b>Comunidade:</b> ' + comunidade + '</p>';
+
+            if (isClonada) {
+                detailsHtml += '<p><b>Matriz:</b> ' + (props['matriz'] || '') + '</p>';
+                detailsHtml += '<p><b>Mês de maturação:</b> ' + (props['mes_matura'] || '') + '</p>';
+                detailsHtml += '<p><b>Clonagem:</b> ' + (props['mes_clone'] || '') + ' / ' + (props['ano_clone'] || '') + '</p>';
+                detailsHtml += '<p><b>Clonada:</b> ' + (props['Clonada'] || 'Não informado') + '</p>';
+            } else {
+                detailsHtml += '<p><b>Disponibilidade de clone:</b> ' + (dispoClone || '') + '</p>';
+            }
+
+            var popupContent =
+                '<div class="custom-popup">' +
+                    '<div class="popup-head">' +
+                        '<h2>Araucária</h2>' +
+                        '<span class="edit-gear" title="Editar">⚙️</span>' +
+                    '</div>' +
+                    '<p><b>Proprietário:</b> ' + (props['proprietar'] || '') + '</p>' +
+                    '<p><b>Nº da árvore:</b> ' + (props['num_arvore'] || '') + '</p>' +
+                    detailsHtml +
+                    '<p><b>Foto:</b></p>' +
+                    imgHtml +
+                    routeButton +
+                '</div>';
+
+            layer.bindPopup(popupContent, {
+                maxWidth: 380,
+                autoPan: true,
+                keepInView: true,
+                autoPanPaddingTopLeft: [50, 50],
+                autoPanPaddingBottomRight: [50, 50]
+            });
+        }
+        loadEditsFromLocalStorage();
+applyEditsToFeatures();
+
+        // ================== ÍNDICE DOS MORADORES (CASAS) ==================
+        // Conta araucárias por morador (ignorando os pontos marcados como 'morador')
+        var moradorStats = {};
+
+        function rebuildMoradorStats() {
+            moradorStats = {};
+            if (!window.json_Araucrias2_1 || !json_Araucrias2_1.features) return;
+
+            json_Araucrias2_1.features.forEach(function (f) {
+                var p = f.properties || {};
+                var nome = (p.proprietar || '').toString().trim();
+                if (!nome) return;
+
+                var cl = (p.Clonada || '').toString().trim().toLowerCase();
+                if (cl === 'morador') return; // não entra na contagem de árvores
+
+                moradorStats[nome] = moradorStats[nome] || { total: 0, clonadas: 0, nao: 0 };
+
+                if (cl === 'sim') {
+                    moradorStats[nome].clonadas += 1;
+                    moradorStats[nome].total += 1;
+                } else if (cl === 'não' || cl === 'nao') {
+                    moradorStats[nome].nao += 1;
+                    moradorStats[nome].total += 1;
+                } else {
+                    // caso exista algum valor diferente, conta como total
+                    moradorStats[nome].total += 1;
+                }
+            });
+        }
+
+        rebuildMoradorStats();
+
+
+
+        // =====================================================================
+        // 6. CAMADA DAS ARAUCÁRIAS E RÓTULOS
+        // =====================================================================
+        var bounds_group = new L.featureGroup([]);
+        var currentFilteredFeatures = [];
+        map.createPane('pane_Araucrias2_1');
+        map.getPane('pane_Araucrias2_1').style.zIndex = 401;
+        map.getPane('pane_Araucrias2_1').style['mix-blend-mode'] = 'normal';
+
+        // ================== CLUSTER (ARAU CÁRIAS + CASAS) ==================
+var cluster_Araucrias2 = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    spiderfyOnMaxZoom: true,
+    disableClusteringAtZoom: 17,
+    maxClusterRadius: 55,
+    chunkedLoading: true,
+
+    iconCreateFunction: function (cluster) {
+        var count = cluster.getChildCount();
+
+        // tamanho do ícone do cluster (você pode ajustar)
+        var size = (count < 50) ? 46 : (count < 200 ? 52 : 60);
+
+        // aqui usamos uma DIV com background-image (a araucária) + número por cima
+        return new L.DivIcon({
+            html:
+                '<div style="' +
+                    'position:relative;' +
+                    'width:' + size + 'px;height:' + size + 'px;' +
+                    'background-image:url(images/araucaria.png);' +
+                    'background-size:contain;' +
+                    'background-repeat:no-repeat;' +
+                    'background-position:center;' +
+                '">' +
+                    '<div style="' +
+                        'position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);' +
+                        'text-align:center;font-weight:bold;' +
+                        'color:#111;' +
+                        'text-shadow:0 0 3px #fff, 0 0 6px #fff;' +
+                        'font-size:14px;' +
+                    '">' + count + '</div>' +
+                '</div>',
+            className: '',           // importante: remove o estilo padrão do cluster
+            iconSize: [size, size]
+        });
+    }
+});
+
+        // ================== CLUSTER (MORADORES / CASAS) ==================
+        var cluster_Moradores = L.markerClusterGroup({
+            showCoverageOnHover: false,
+            spiderfyOnMaxZoom: true,
+            disableClusteringAtZoom: 17,
+            maxClusterRadius: 60,
+            chunkedLoading: true,
+
+            iconCreateFunction: function (cluster) {
+                var count = cluster.getChildCount();
+                var size = (count < 20) ? 42 : (count < 80 ? 48 : 56);
+
+                return new L.DivIcon({
+                    html:
+                        '<div style="' +
+                            'position:relative;' +
+                            'width:' + size + 'px;height:' + size + 'px;' +
+                            'background-image:url(images/casa.png);' +
+                            'background-size:contain;' +
+                            'background-repeat:no-repeat;' +
+                            'background-position:center;' +
+                        '">' +
+                            '<div style="' +
+                                'position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);' +
+                                'text-align:center;font-weight:bold;' +
+                                'color:#111;' +
+                                'text-shadow:0 0 3px #fff, 0 0 6px #fff;' +
+                                'font-size:13px;' +
+                            '">' + count + '</div>' +
+                        '</div>',
+                    className: '',
+                    iconSize: [size, size]
+                });
+            }
+        });
+
+        // ================== CAMADAS SEPARADAS: ARAUCÁRIAS x MORADORES ==================
+        // Usa o MESMO GeoJSON (json_Araucrias2_1), apenas filtra por atributo "Clonada".
+
+        var layer_araucarias = new L.geoJson(json_Araucrias2_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Araucrias2_1',
+            layerName: 'layer_araucarias',
+            pane: 'pane_Araucrias2_1',
+            filter: function (feature) {
+                var v = (feature && feature.properties && feature.properties['Clonada'])
+                    ? feature.properties['Clonada'].toString().trim().toLowerCase()
+                    : '';
+                return v !== 'morador';
+            },
+            onEachFeature: pop_Araucrias2_1,
+            pointToLayer: function (feature, latlng) {
+                var clonada = (feature.properties['Clonada'] || '').toString().trim().toLowerCase();
+
+                // =========================
+                // MODO IMPRESSÃO (PDF)
+                // =========================
+                if (window.__PRINT_MODE === true) {
+    var isNao = (clonada === 'não' || clonada === 'nao');
+    return L.circleMarker(latlng, {
+        radius: 4,
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.9,
+        color: isNao ? '#b00000' : '#006b1b',
+        fillColor: isNao ? '#ff2a2a' : '#00a83a'
+    });
+}
+
+
+                // =========================
+                // MODO NORMAL (site)
+                // =========================
+                var iconToUse = pineIcon; // padrão: clonada (verde)
+                if (clonada === 'não' || clonada === 'nao') iconToUse = pineIconRed;
+                return L.marker(latlng, { icon: iconToUse });
+            }
+        });
+
+        var layer_moradores = new L.geoJson(json_Araucrias2_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Araucrias2_1',
+            layerName: 'layer_moradores',
+            pane: 'pane_Araucrias2_1',
+            filter: function (feature) {
+                var v = (feature && feature.properties && feature.properties['Clonada'])
+                    ? feature.properties['Clonada'].toString().trim().toLowerCase()
+                    : '';
+                return v === 'morador';
+            },
+            onEachFeature: pop_Araucrias2_1,
+            pointToLayer: function (feature, latlng) {
+                // MODO IMPRESSÃO: bolinha cinza
+                if (window.__PRINT_MODE === true) {
+                    return L.circleMarker(latlng, {
+                        radius: 4,
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.9,
+                        color: '#333333',
+                        fillColor: '#333333'
+                    });
+                }
+                // MODO NORMAL: ícone casa
+                return L.marker(latlng, { icon: casaIcon });
+            }
+        });
+        map.createPane('pane_labels_araucarias');
+        map.getPane('pane_labels_araucarias').style.zIndex = 402;
+        map.getPane('pane_labels_araucarias').style.pointerEvents = 'none';
+
+        var layer_Araucrias2_labels = L.layerGroup();
+
+        function refreshTreeLabels(features) {
+            layer_Araucrias2_labels.clearLayers();
+
+            features.forEach(function (feat) {
+                if (!feat.geometry || feat.geometry.type !== 'Point') return;
+
+                // Ignora pontos de casa (morador) para não rotular
+                var _p = feat.properties || {};
+                var _cl = (_p['Clonada'] || '').toString().trim().toLowerCase();
+                if (_cl === 'morador') return;
+
+                var props = feat.properties || {};
+                var num = props.num_arvore;
+                if (num === null || num === undefined || num === '') return;
+
+                var coords = feat.geometry.coordinates;
+                var latlng = L.latLng(coords[1], coords[0]);
+
+                var labelMarker = L.marker(latlng, {
+                    pane: 'pane_labels_araucarias',
+                    interactive: false,
+                    icon: L.divIcon({
+                        className: 'tree-label',
+                        html: num,
+                        iconSize: null
+                    })
+                });
+
+                layer_Araucrias2_labels.addLayer(labelMarker);
+            });
+        }
+
+        refreshTreeLabels(json_Araucrias2_1.features);
+        currentFilteredFeatures = json_Araucrias2_1.features.slice();
+
+        // Araucárias agrupadas (cluster)
+cluster_Araucrias2.addLayer(layer_araucarias);
+map.addLayer(cluster_Araucrias2);
+
+// Moradores (casas) agrupados (cluster)
+cluster_Moradores.addLayer(layer_moradores);
+map.addLayer(cluster_Moradores);
+
+
+        // =====================================================================
+        // 7. FILTROS PERSONALIZADOS
+        // =====================================================================
+        var selectProp     = document.getElementById('f-proprietario');
+        var selectMesMat   = document.getElementById('f-mes-matura');
+        var selectAnoClone = document.getElementById('f-ano-clone');
+        var selectDispoClone = document.getElementById('f-dispo-clone');
+        var selectComunidade = document.getElementById('f-comunidade');
+        var selectClonada  = document.getElementById('f-clonada');
+
+        function wireFilterChanges() {
+            [selectProp, selectClonada, selectMesMat, selectAnoClone, selectDispoClone, selectComunidade].forEach(function (sel) {
+                if (!sel) return;
+                sel.addEventListener('change', function () {
+                    if (typeof applyFilters === 'function') applyFilters();
+                });
+            });
+        }
+
+
+
+        
+        // ================== APLICAÇÃO DOS FILTROS (ATUALIZA CLUSTER) ==================
+        function _getDispoClone(p){
+            if (!p) return '';
+            var v = (p.dispo_clone !== undefined && p.dispo_clone !== null) ? p.dispo_clone :
+                    ((p.dispo_clon !== undefined && p.dispo_clon !== null) ? p.dispo_clon :
+                    ((p.Dispo_clon !== undefined && p.Dispo_clon !== null) ? p.Dispo_clon : ''));
+            return (v === undefined || v === null) ? '' : String(v).trim();
+        }
+
+        function applyFilters() {
+            var vProp       = (selectProp && selectProp.value) ? selectProp.value : '';
+            var vClonada    = (selectClonada && selectClonada.value) ? selectClonada.value : '';
+            var vMesMat     = (selectMesMat && selectMesMat.value) ? selectMesMat.value : '';
+            var vAnoClone   = (selectAnoClone && selectAnoClone.value) ? selectAnoClone.value : '';
+            var vDispoClone = (selectDispoClone && selectDispoClone.value) ? selectDispoClone.value : '';
+            var vComu       = (selectComunidade && selectComunidade.value) ? selectComunidade.value : '';
+
+            var filtered = json_Araucrias2_1.features.filter(function (feat) {
+                var p = feat.properties || {};
+                var cl = (p.Clonada || '').toString().trim().toLowerCase();
+                if (cl === 'morador') return false;
+
+                if (vProp && String(p.proprietar || '').trim() !== vProp) return false;
+
+                if (vClonada) {
+                    var clNorm = (cl === 'nao') ? 'não' : cl;
+                    var vNorm  = (String(vClonada).trim().toLowerCase() === 'nao') ? 'não' : String(vClonada).trim().toLowerCase();
+                    if (clNorm !== vNorm) return false;
+                }
+
+                if (vMesMat && String(p.mes_matura || '').trim() !== vMesMat) return false;
+                if (vAnoClone && String(p.ano_clone || '').trim() !== vAnoClone) return false;
+
+                if (vDispoClone) {
+                    var dc = _getDispoClone(p);
+                    if (dc !== vDispoClone) return false;
+                }
+
+                if (vComu && String(p.comu_c || '').trim() !== vComu) return false;
+
+                return true;
+            });
+
+            currentFilteredFeatures = filtered.slice();
+
+            // Atualiza camada (geojson)
+            layer_araucarias.clearLayers();
+            layer_araucarias.addData({ type: 'FeatureCollection', features: filtered });
+
+            // Atualiza cluster (remove antigos e adiciona filtrados)
+            if (typeof cluster_Araucrias2 !== 'undefined') {
+                cluster_Araucrias2.clearLayers();
+                cluster_Araucrias2.addLayer(layer_araucarias);
+                cluster_Araucrias2.refreshClusters();
+            }
+
+            // Rótulos (nº das árvores) só se estiver ligado
+            if (typeof layer_Araucrias2_labels !== 'undefined') {
+                if (map.hasLayer(layer_Araucrias2_labels)) {
+                    refreshTreeLabels(filtered);
+                } else {
+                    layer_Araucrias2_labels.clearLayers();
+                }
+            }
+
+            // Estatísticas (se existir)
+            if (typeof computeStats === 'function') {
+                computeStats(filtered);
+            }
+        }
+
+function addOptionsFromSet(select, valuesSet) {
+            Array.from(valuesSet).sort().forEach(function (val) {
+                var opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = val;
+                select.appendChild(opt);
+            });
+        }
+
+        var owners   = new Set();
+        var mesesMat = new Set();
+        var anosClon  = new Set();
+        var dispoClon = new Set();
+        var comunidades = new Set();
+        var clonadas = new Set();
+
+
+        json_Araucrias2_1.features.forEach(function (feat) {
+            var p = feat.properties || {};
+            if (p.proprietar) owners.add(p.proprietar);
+            if (p.mes_matura) mesesMat.add(p.mes_matura);            if (p.ano_clone)  anosClon.add(String(p.ano_clone));
+        var dc = (p.dispo_clone !== undefined && p.dispo_clone !== null) ? p.dispo_clone : ((p.dispo_clon !== undefined && p.dispo_clon !== null) ? p.dispo_clon : ((p.Dispo_clon !== undefined && p.Dispo_clon !== null) ? p.Dispo_clon : ''));
+        if (dc) dispoClon.add(String(dc).trim());
+        if (p.comu_c) comunidades.add(String(p.comu_c).trim());
+            var dc = (p.dispo_clone !== undefined && p.dispo_clone !== null) ? p.dispo_clone : ((p.dispo_clon !== undefined && p.dispo_clon !== null) ? p.dispo_clon : ((p.Dispo_clon !== undefined && p.Dispo_clon !== null) ? p.Dispo_clon : ''));
+            if (dc) dispoClon.add(String(dc).trim());
+            if (p.comu_c) comunidades.add(String(p.comu_c).trim());
+            if (p.Clonada) clonadas.add(String(p.Clonada).trim());
+
+        });
+
+        addOptionsFromSet(selectProp, owners);
+        addOptionsFromSet(selectMesMat, mesesMat);
+        addOptionsFromSet(selectAnoClone, anosClon);
+        addOptionsFromSet(selectDispoClone, dispoClon);
+        addOptionsFromSet(selectComunidade, comunidades);
+        addOptionsFromSet(selectClonada, clonadas);
+
+        wireFilterChanges();
+        if (typeof applyFilters === 'function') applyFilters();
+// =====================================================================
+        // APLICAÇÃO DOS FILTROS (respeita: proprietário, clonada, mês maturação, ano clonagem, disponibilidade, comunidade)
+        // Observação: Filtra apenas araucárias (exclui "morador"). Casas permanecem visíveis e clusterizadas.
+        // =====================================================================
+        if (typeof window.applyFilters !== 'function') {
+            window.applyFilters = function () {
+                var prop = (selectProp && selectProp.value) ? selectProp.value : '';
+                var cl   = (selectClonada && selectClonada.value) ? selectClonada.value : '';
+                var mm   = (selectMesMat && selectMesMat.value) ? selectMesMat.value : '';
+                var ac   = (selectAnoClone && selectAnoClone.value) ? selectAnoClone.value : '';
+                var dc   = (selectDispoClone && selectDispoClone.value) ? selectDispoClone.value : '';
+                var cm   = (selectComunidade && selectComunidade.value) ? selectComunidade.value : '';
+
+                function norm(v){ return (v===undefined||v===null) ? '' : String(v).trim(); }
+                function normLow(v){ return norm(v).toLowerCase(); }
+
+                // filtra somente features de araucárias (não morador)
+                currentFilteredFeatures = json_Araucrias2_1.features.filter(function (feat) {
+                    var p = feat.properties || {};
+                    var clon = normLow(p.Clonada);
+                    if (clon === 'morador') return false;
+
+                    if (prop && norm(p.proprietar) !== prop) return false;
+                    if (cl && norm(p.Clonada) !== cl) return false;
+                    if (mm && norm(p.mes_matura) !== mm) return false;
+                    if (ac && norm(p.ano_clone) !== ac) return false;
+
+                    var dispo = '';
+                    if (p.dispo_clone !== undefined && p.dispo_clone !== null) dispo = norm(p.dispo_clone);
+                    else if (p.dispo_clon !== undefined && p.dispo_clon !== null) dispo = norm(p.dispo_clon);
+                    else if (p.Dispo_clon !== undefined && p.Dispo_clon !== null) dispo = norm(p.Dispo_clon);
+                    if (dc && dispo !== dc) return false;
+
+                    if (cm && norm(p.comu_c) !== cm) return false;
+
+                    return true;
+                });
+
+                // Atualiza camada de araucárias (geoJson)
+                if (typeof layer_araucarias !== 'undefined' && layer_araucarias) {
+                    layer_araucarias.clearLayers();
+                    layer_araucarias.addData(currentFilteredFeatures);
+                }
+
+                // Atualiza clusters (se existirem)
+                if (typeof cluster_Araucrias2 !== 'undefined' && cluster_Araucrias2 && cluster_Araucrias2.refreshClusters) {
+                    cluster_Araucrias2.refreshClusters();
+                }
+
+                // Atualiza rótulos se a camada estiver ligada
+                if (typeof layer_Araucrias2_labels !== 'undefined' && layer_Araucrias2_labels && map && map.hasLayer(layer_Araucrias2_labels)) {
+                    refreshTreeLabels(currentFilteredFeatures);
+                } else {
+                    // mantém o array interno atualizado, mas não desenha rótulos
+                }
+            };
+        }
+
+        if (typeof applyFilters === 'function') applyFilters();
+
+        // =====================================================================
+        // 9. PAINÉIS DOBRÁVEIS
+        // =====================================================================
+        function makeCollapsible(headerId, bodyId, closeId, startCollapsed) {
+            var header = document.getElementById(headerId);
+            var body   = document.getElementById(bodyId);
+            var close  = closeId ? document.getElementById(closeId) : null;
+            if (!header || !body) return;
+
+            function setState(collapsed) {
+                body.style.display = collapsed ? 'none' : 'block';
+                if (collapsed) header.classList.add('collapsed');
+                else header.classList.remove('collapsed');
+            }
+
+            header.addEventListener('click', function (e) {
+                if (close && e.target === close) return;
+                var collapsedNow = (body.style.display === 'none');
+                setState(!collapsedNow);
+            });
+
+            if (close) {
+                close.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    setState(true);
+                });
+            }
+
+            setState(startCollapsed);
+        }
+
+        makeCollapsible('legend-header', 'legend-body', 'legend-close', true);
+                makeCollapsible('filter-header', 'filter-body', 'filter-close', true);
+
+        // =====================================================================
+        // 10. CONTROLE DE CAMADAS / LEGENDA
+        // =====================================================================
+        var overlaysTree = [
+            { label: 'Projeto Araucárias', children: [
+                { label: '<img src="images/araucaria.png" /> Araucárias cadastradas', layer: cluster_Araucrias2 },
+                { label: '<img src="images/casa.png" /> Moradores', layer: cluster_Moradores }
+            ] },
+            { label: 'Limite do Município (Bituruna)', layer: layer_bituruna_2 },
+            { label: 'Comunidades Rurais', layer: layer_comunidades_rurais_1 },
+            { label: 'Perímetro Urbano', layer: layer_perimetro_urbano_3 },
+            { label: 'Nº das árvores', layer: layer_Araucrias2_labels },
+            { label: 'Imagem de satélite (Google)', layer: layer_GoogleSatellite_0 }
+        ];
+
+        var legendControl = L.control.layers.tree(null, overlaysTree, {
+            collapsed: false
+        });
+
+        legendControl.addTo(map);
+
+        var legendContainerDiv = document.getElementById('legend-container');
+        if (legendContainerDiv) {
+            var ctrlElem = legendControl.getContainer();
+            legendContainerDiv.appendChild(ctrlElem);
+            // ================== ESTATÍSTICAS ==================
+var charts = {};
+
+    // ================== MATRIZES (INTERNO) — NOME POR EXTENSO (PROTEGIDO) ==================
+    // Senha separada (pode trocar)
+    var STATS_PIN = "1234";
+    var STATS_SESSION_KEY = "stats_unlocked";
+
+    function isStatsUnlocked(){
+      return sessionStorage.getItem(STATS_SESSION_KEY) === "1";
+    }
+    function requestStatsUnlock(){
+      if (isStatsUnlocked()) return true;
+      var pin = prompt("Área restrita. Digite a senha:");
+      if (pin === null) return false;
+      if (pin === STATS_PIN){
+        sessionStorage.setItem(STATS_SESSION_KEY, "1");
+        return true;
+      }
+      alert("Senha incorreta.");
+      return false;
+    }
+
+    function normMatrizKey(v){
+      return (v||'')
+        .toString()
+        .toUpperCase()
+        .replace(/\s+/g,'')
+        .replace(/–|—/g,'-')
+        .replace(/[^A-Z0-9-]/g,'')
+        .trim();
+    }
+
+    var MATRIZES_INTERNAS = {
+"A-B": "ARCINDO RIBEIRO BATISTA",
+  "A-D": "ANTÔNIO OSVALDO DORKOWSKI",
+  "A-M": "ANISIO DE OLIVEIRA MELO",
+  "A-P": "ADILSON PILANTIR",
+  "A-S": "ARMANDO DONNER DA SILVA",
+  "C-D": "CIDINEI DIMINI",
+  "C-Z": "CARLOS MARCELO ZAMPIRAM",
+  "D-M": "DAVINO",
+  "E-R": "EGIDIO RIBAS",
+  "E-Z": "ERNESTO ZEMBRUSKI",
+  "I-O": "IVANIR OLIVEIRA",
+  "J-A": "JOSE ALTAMIR DE MELLO",
+  "J-C": "JOSE CASTILHO",
+  "J-H": "JEREMIAS HENRIQUE DOS SANTOS",
+  "J-I": "JOÃO IVANOR DE LIMA",
+  "J-L": "JOEL LORI",
+  "J-M": "JOSE MARTIAS",
+  "J-R": "JOSE CONSTANTINO DE LARA RIBAS",
+  "J-S": "JOSE MARIA SANTOS",
+  "L-S": "LEONIRA MAIA SANTOS",
+  "M-B": ["MARIA DO CARMO DA SILVA", "MARIA DO CARMO BUENO"],
+  "M-Z": "MARIO ZAMPIRAM",
+  "O-C": "OSNI CASTILHA",
+  "P-M": "PEDRO BRITO DE MIRANDA",
+  "R-O": "ROSALINO OLIVEIRA",
+  "V-K": "VILMAR KAYESHKI",
+  "V-M": "VALDIR MACHADO",
+  "V-S": "VALDIR SKAKUN",
+  "W-B": "WAGNER BORCATE",
+  "R-F": "REINALDO FURLAN",
+  "F-S": "FAXINAL SANTOS",
+  "R-C": "ROQUE CLAUS",
+  "S-A": "SONIA ALMEIDA",
+  "L-C": "LUIZ CKOSKO",
+  "M-M": "MOACIR MASIERO",
+};
+
+    // Também cria um mapa normalizado para bater mesmo com espaços/pontuação
+    var MATRIZES_INTERNAS_NORM = (function(){
+      var out = {};
+      try{
+        Object.keys(MATRIZES_INTERNAS).forEach(function(sig){
+          var key = normMatrizKey(sig);
+          if(!key) return;
+          out[key] = MATRIZES_INTERNAS[sig];
+        });
+      }catch(e){}
+      return out;
+    })();
+
+    function renderMatrizesInternas(matrizCount){
+      var locked = document.getElementById('matriz-interno-locked');
+      var box = document.getElementById('matriz-interno-content');
+      if (!box) return;
+
+      if (!isStatsUnlocked()){
+        if (locked) locked.style.display = 'block';
+        box.innerHTML = '';
+        return;
+      } else {
+        if (locked) locked.style.display = 'none';
+      }
+
+      var keys = Object.keys(matrizCount || {});
+      if (!keys.length){
+        box.innerHTML = '<em>Sem matrizes cadastradas no recorte atual.</em>';
+        return;
+      }
+
+      keys.sort(function(a,b){ return (matrizCount[b]||0) - (matrizCount[a]||0); });
+
+      var faltando = [];
+      var html = '<table style="width:100%; border-collapse:collapse;">';
+      html += '<tr>' +
+                '<th style="text-align:left; padding:4px; border-bottom:1px solid #ddd;">Sigla</th>' +
+                '<th style="text-align:left; padding:4px; border-bottom:1px solid #ddd;">Nome (por extenso)</th>' +
+                '<th style="text-align:right; padding:4px; border-bottom:1px solid #ddd;">Qtd.</th>' +
+              '</tr>';
+
+      keys.forEach(function(sig){
+        var nkey = normMatrizKey(sig);
+        var nm = MATRIZES_INTERNAS_NORM[nkey];
+        if (!nm) {
+          faltando.push(sig);
+          nm = '— NÃO CADASTRADA (me diga de quem é)';
+        }
+        var qtd = matrizCount[sig] || 0;
+
+        if (Array.isArray(nm)) {
+          nm.forEach(function(nome, idx){
+            html += '<tr>' +
+              '<td style="padding:4px; border-bottom:1px solid #eee;">' + (idx===0?sig:'') + '</td>' +
+              '<td style="padding:4px; border-bottom:1px solid #eee;">' + nome + '</td>' +
+              '<td style="padding:4px; border-bottom:1px solid #eee; text-align:right; font-weight:bold;">' + (idx===0?qtd:'') + '</td>' +
+            '</tr>';
+          });
+        } else {
+          html += '<tr>' +
+            '<td style="padding:4px; border-bottom:1px solid #eee;">' + sig + '</td>' +
+            '<td style="padding:4px; border-bottom:1px solid #eee;">' + nm + '</td>' +
+            '<td style="padding:4px; border-bottom:1px solid #eee; text-align:right; font-weight:bold;">' + qtd + '</td>' +
+          '</tr>';
+        }
+      });
+
+      html += '</table>';
+
+      if (faltando.length){
+        html += '<div style="margin-top:10px; padding:8px; border:1px solid #f0c2c2; border-radius:8px; background:#fff7f7;">' +
+                '<b>Siglas no mapa sem nome no TXT:</b> ' + faltando.join(', ') +
+                '<br><span style="font-size:11px; color:#666;">Me diga de quem são que eu completo a relação.</span>' +
+                '</div>';
+      }
+
+      box.innerHTML = html;
+    }
+
+
+
+
+
+// ====== Chart.js: mostrar valores nas barras/linhas (para impressão e leitura) ======
+(function(){
+  if (!window.Chart || Chart._valueLabelPluginInstalled) return;
+  Chart._valueLabelPluginInstalled = true;
+
+  var valueLabelPlugin = {
+    id: 'valueLabelPlugin',
+    afterDatasetsDraw: function(chart){
+      try{
+        var ctx = chart.ctx;
+        var type = chart.config.type;
+        if (type !== 'bar' && type !== 'line') return;
+
+        var opts = chart.options || {};
+        var scales = opts.scales || {};
+        var isHorizontal = (opts.indexAxis === 'y');
+        var isStacked = false;
+        // stacked pode estar no eixo principal
+        try{
+          if (isHorizontal){
+            isStacked = !!(scales.x && scales.x.stacked);
+          }else{
+            isStacked = !!(scales.y && scales.y.stacked);
+          }
+        }catch(e){}
+
+        ctx.save();
+        ctx.font = '11px Arial';
+        ctx.fillStyle = '#111';
+        ctx.textBaseline = 'middle';
+
+        var datasets = chart.data.datasets || [];
+        var labelsCount = (chart.data.labels || []).length;
+
+        function drawText(text, x, y, align){
+          ctx.textAlign = align || 'center';
+          ctx.fillText(String(text), x, y);
+        }
+
+        if (type === 'bar'){
+          if (isStacked){
+            for (var i=0; i<labelsCount; i++){
+              var total = 0;
+              datasets.forEach(function(ds){
+                var v = ds.data && ds.data[i];
+                var n = (typeof v === 'number') ? v : parseFloat(v);
+                if (!isNaN(n)) total += n;
+              });
+              // pega o elemento do topo (último dataset com meta/data)
+              var topEl = null;
+              for (var d=datasets.length-1; d>=0; d--){
+                var meta = chart.getDatasetMeta(d);
+                if (meta && meta.data && meta.data[i]){
+                  topEl = meta.data[i];
+                  break;
+                }
+              }
+              if (!topEl) continue;
+
+              var pos = topEl.tooltipPosition();
+              if (isHorizontal){
+                // ao fim da barra (direita)
+                drawText(total, pos.x + 14, pos.y, 'left');
+              }else{
+                // acima da barra
+                drawText(total, pos.x, pos.y - 10, 'center');
+              }
+            }
+          }else{
+            datasets.forEach(function(ds, di){
+              var meta = chart.getDatasetMeta(di);
+              if (!meta || meta.hidden) return;
+              meta.data.forEach(function(el, idx){
+                var v = ds.data && ds.data[idx];
+                if (v === null || v === undefined || v === '') return;
+                var pos = el.tooltipPosition();
+                if (isHorizontal){
+                  drawText(v, pos.x + 14, pos.y, 'left');
+                }else{
+                  drawText(v, pos.x, pos.y - 10, 'center');
+                }
+              });
+            });
+          }
+        }
+
+        if (type === 'line'){
+          datasets.forEach(function(ds, di){
+            var meta = chart.getDatasetMeta(di);
+            if (!meta || meta.hidden) return;
+            meta.data.forEach(function(el, idx){
+              var v = ds.data && ds.data[idx];
+              if (v === null || v === undefined || v === '') return;
+              var pos = el.tooltipPosition();
+              drawText(v, pos.x, pos.y - 10, 'center');
+            });
+          });
+        }
+
+        ctx.restore();
+      }catch(e){}
+    }
+  };
+
+  Chart.register(valueLabelPlugin);
+})();
+
+function computeStats(features) {
+    // features já chegam filtradas (e sem "morador")
+    var total = features.length;
+    var clonada = 0;
+    var nao = 0;
+
+    // proprietários
+    var props = {};
+    var propsStack = {};
+
+    // comunidades
+    var comuStack = {};
+
+    // disponibilidade
+    var dispoCount = {}; // chave -> qtd (para NÃO CLONADAS). clonadas entram separado
+    // maturação
+    var mesesOrder = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    var mesCount = {};
+    mesesOrder.forEach(function(k){ mesCount[k]=0; });
+    mesCount['Sem info'] = 0;
+
+    // ano clonagem (somente clonadas)
+    var anoClone = {};
+
+    // matrizes
+    var matrizesSet = new Set();
+    var matrizCount = {}; // matriz -> qtd
+
+    function getDispo(p){
+        if (!p) return '';
+        var v = (p.dispo_clone !== undefined && p.dispo_clone !== null) ? p.dispo_clone :
+                ((p.dispo_clon !== undefined && p.dispo_clon !== null) ? p.dispo_clon :
+                ((p.Dispo_clon !== undefined && p.Dispo_clon !== null) ? p.Dispo_clon : ''));
+        return (v === undefined || v === null) ? '' : String(v).trim();
+    }
+
+    features.forEach(function (f) {
+        var p = f.properties || {};
+        var prop = (p.proprietar || '—').toString().trim() || '—';
+        var clRaw = (p.Clonada || '').toString().trim().toLowerCase();
+        var cl = (clRaw === 'nao') ? 'não' : clRaw;
+
+        // ---- proprietários
+        props[prop] = (props[prop] || 0) + 1;
+        propsStack[prop] = propsStack[prop] || { sim: 0, nao: 0 };
+
+        // ---- comunidades
+        var comu = (p.comu_c || 'Sem comunidade').toString().trim() || 'Sem comunidade';
+        comuStack[comu] = comuStack[comu] || { sim: 0, nao: 0, total: 0 };
+
+        if (cl === 'sim') {
+            clonada++;
+            propsStack[prop].sim++;
+            comuStack[comu].sim++;
+
+            // ano de clonagem (só para clonadas)
+            var a = (p.ano_clone !== undefined && p.ano_clone !== null) ? String(p.ano_clone).trim() : '';
+            if (!a) a = 'Sem ano';
+            anoClone[a] = (anoClone[a] || 0) + 1;
+
+        } else if (cl === 'não') {
+            nao++;
+            propsStack[prop].nao++;
+            comuStack[comu].nao++;
+
+            // disponibilidade (só faz sentido para não clonadas)
+            var dc = getDispo(p);
+            if (!dc) dc = 'Sem previsão';
+            dispoCount[dc] = (dispoCount[dc] || 0) + 1;
+        } else {
+            // se vier vazio/outro, conta como "não clonada" para efeitos de potencial? Mantemos fora.
+            // ainda entra no total e nos agrupadores.
+        }
+
+        comuStack[comu].total++;
+
+        // mês de maturação
+        var mm = (p.mes_matura || '').toString().trim();
+        if (mm && mesCount[mm] !== undefined) mesCount[mm] += 1;
+        else if (!mm) mesCount['Sem info'] += 1;
+        else {
+            // mês fora do padrão (ex: "Janeiro") — joga em Sem info para não quebrar
+            mesCount['Sem info'] += 1;
+        }
+
+        // matrizes
+        if (p.matriz !== undefined && p.matriz !== null && String(p.matriz).trim() !== '') {
+            var mz = String(p.matriz).trim();
+            matrizesSet.add(mz);
+            matrizCount[mz] = (matrizCount[mz] || 0) + 1;
+        }
+    });
+
+    // ------ cards (Resumo)
+    document.getElementById('st-total').textContent = total;
+    document.getElementById('st-prop').textContent = Object.keys(props).length;
+    document.getElementById('st-clonada').textContent = clonada;
+    document.getElementById('st-nao').textContent = nao;
+    document.getElementById('st-matrizes').textContent = matrizesSet.size;
+
+    var pct = total ? Math.round((clonada / total) * 100) : 0;
+    var elPct = document.getElementById('st-pct');
+    if (elPct) elPct.textContent = pct + '%';
+
+    // comunidade (líder no geral; sem sufixo quando filtra por proprietário)
+    var topComu = '—', topComuV = -1;
+    Object.keys(comuStack).forEach(function(k){
+        if (comuStack[k].total > topComuV){
+            topComuV = comuStack[k].total;
+            topComu = k;
+        }
+    });
+    var elTopComu = document.getElementById('st-comu-top');
+    if (elTopComu) elTopComu.textContent = topComu;
+
+    // Ajusta rótulo: quando o filtro de proprietário está ativo, não faz sentido "líder"
+    var elComuLabel = document.getElementById('st-comu-label');
+    try{
+        var hasOwnerFilter = (typeof selectProp !== 'undefined' && selectProp && selectProp.value && String(selectProp.value).trim() !== '');
+        if (elComuLabel) elComuLabel.textContent = hasOwnerFilter ? 'Comunidade' : 'Comunidade líder';
+    }catch(e){}
+
+    // disponibilidade: em vez de só "próxima", mostra quantidade de categorias e lista abaixo
+    var dispoKeys = Object.keys(dispoCount || {});
+    var elDispo = document.getElementById('st-dispo-next');
+    if (elDispo) elDispo.textContent = dispoKeys.length ? (dispoKeys.length + ' tipos') : '—';
+
+    // Renderiza lista de disponibilidades (não clonadas)
+    (function(){
+        var elList = document.getElementById('st-dispo-list');
+        if (!elList) return;
+        if (!dispoKeys.length){
+            elList.innerHTML = '<em>Sem informações de disponibilidade no recorte atual.</em>';
+            return;
+        }
+        function dispoSort(a,b){
+            function key(s){
+                var mm = String(s).match(/^(\d{4})\s*\/\s*(\d{1,2})$/);
+                if (!mm) return null;
+                return parseInt(mm[1],10)*10 + parseInt(mm[2],10);
+            }
+            var ka = key(a), kb = key(b);
+            if (ka===null && kb===null) return String(a).localeCompare(String(b));
+            if (ka===null) return 1;
+            if (kb===null) return -1;
+            return ka-kb;
+        }
+        dispoKeys.sort(dispoSort);
+
+        var html = '<table style="width:100%; border-collapse:collapse;">';
+        dispoKeys.forEach(function(k){
+            html += '<tr>' +
+                      '<td style="padding:3px 4px; border-bottom:1px solid #eee;">' + k + '</td>' +
+                      '<td style="padding:3px 4px; border-bottom:1px solid #eee; text-align:right; font-weight:bold;">' + (dispoCount[k]||0) + '</td>' +
+                    '</tr>';
+        });
+        html += '</table>';
+        elList.innerHTML = html;
+    })();
+
+    // matriz líder + lista completa (quando filtra por proprietário isso fica essencial)
+    var topMz='—', topMzV=-1;
+    Object.keys(matrizCount).forEach(function(k){
+        if (matrizCount[k] > topMzV){
+            topMzV = matrizCount[k];
+            topMz = k;
+        }
+    });
+    var elTopMz = document.getElementById('st-matriz-top');
+    if (elTopMz) elTopMz.textContent = topMz;
+
+    // Renderiza lista de matrizes e quantidades
+    (function(){
+        var elList = document.getElementById('st-matrizes-list');
+        if (!elList) return;
+
+        var keys = Object.keys(matrizCount || {});
+        if (!keys.length){
+            elList.innerHTML = '<em>Sem matrizes cadastradas no recorte atual.</em>';
+            return;
+        }
+        keys.sort(function(a,b){ return (matrizCount[b]||0) - (matrizCount[a]||0); });
+
+        var html = '<table style="width:100%; border-collapse:collapse;">';
+        keys.forEach(function(k){
+            html += '<tr>' +
+                      '<td style="padding:3px 4px; border-bottom:1px solid #eee;">' + k + '</td>' +
+                      '<td style="padding:3px 4px; border-bottom:1px solid #eee; text-align:right; font-weight:bold;">' + (matrizCount[k]||0) + '</td>' +
+                    '</tr>';
+        });
+        html += '</table>';
+        elList.innerHTML = html;
+    })();
+
+    
+    // guarda para a aba interna usar (sem interferir nos gráficos)
+    window.__LAST_MATRIZ_COUNT__ = matrizCount;
+
+    // se a aba interna estiver ativa, atualiza também (respeita filtros)
+    try{
+        var activeTab = document.querySelector('.stats-tab.active');
+        var activeId = activeTab ? activeTab.getAttribute('data-tab') : 'tab7';
+        if (activeId === 'tab10'){
+            renderMatrizesInternas(matrizCount);
+        }
+    }catch(e){}
+
+drawCharts({
+        clonada: clonada,
+        nao: nao,
+        props: props,
+        propsStack: propsStack,
+        dispoCount: dispoCount,
+        comuStack: comuStack,
+        mesCount: mesCount,
+        anoClone: anoClone,
+        matrizCount: matrizCount
+    });
+}
+
+
+function drawCharts(data) {
+    function reset(id) {
+        if (charts[id]) charts[id].destroy();
+    }
+
+    // ---------------- 1) Clonadas x Não ----------------
+    reset('c1');
+    charts.c1 = new Chart(document.getElementById('chart-clonadas'), {
+        type: 'bar',
+        data: {
+            labels: ['Clonadas', 'Não clonadas'],
+            datasets: [{
+                data: [data.clonada, data.nao],
+                backgroundColor: ['#00a83a', '#ff2a2a']
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // ---------------- 2) Stack por proprietário ----------------
+    var propsLabels = Object.keys(data.propsStack);
+    reset('c2s');
+    charts.c2s = new Chart(document.getElementById('chart-prop-stack'), {
+        type: 'bar',
+        data: {
+            labels: propsLabels,
+            datasets: [
+                { label: 'Clonadas', data: propsLabels.map(l => data.propsStack[l].sim), backgroundColor: '#00a83a' },
+                { label: 'Não clonadas', data: propsLabels.map(l => data.propsStack[l].nao), backgroundColor: '#ff2a2a' }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top' } },
+            scales: {
+                x: { stacked: true, ticks: { maxRotation: 60, minRotation: 45 } },
+                y: { stacked: true, beginAtZero: true }
+            }
+        }
+    });
+
+    // ---------------- 3) Total por proprietário ----------------
+    var propLabels2 = Object.keys(data.props);
+    var propValues2 = Object.values(data.props);
+    reset('c2');
+    charts.c2 = new Chart(document.getElementById('chart-prop'), {
+        type: 'bar',
+        data: { labels: propLabels2, datasets: [{ data: propValues2, backgroundColor: '#2c7be5' }] },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true }, x: { ticks: { maxRotation: 60, minRotation: 45 } } }
+        }
+    });
+
+    // ---------------- 4) Disponibilidade ----------------
+    // Ordena chaves tipo YYYY/SS em ordem crescente; mantém "Sem previsão" no fim
+    function dispoSort(a,b){
+        function key(s){
+            var m = String(s).match(/^(\d{4})\s*\/\s*(\d{1,2})$/);
+            if (!m) return null;
+            return parseInt(m[1],10)*10 + parseInt(m[2],10);
+        }
+        var ka = key(a), kb = key(b);
+        if (ka===null && kb===null) return String(a).localeCompare(String(b));
+        if (ka===null) return 1;
+        if (kb===null) return -1;
+        return ka-kb;
+    }
+    var dispoLabels = Object.keys(data.dispoCount || {}).sort(dispoSort);
+    // se não tiver nada, evita quebrar
+    reset('cDispo');
+    charts.cDispo = new Chart(document.getElementById('chart-dispo'), {
+        type: 'bar',
+        data: {
+            labels: dispoLabels,
+            datasets: [{
+                label: 'Não clonadas (por previsão)',
+                data: dispoLabels.map(l => data.dispoCount[l] || 0),
+                backgroundColor: '#f0ad4e'
+            }]
+        },
+        options: {
+            plugins: { legend: { position: 'top' } },
+            scales: { y: { beginAtZero: true }, x: { ticks: { maxRotation: 60, minRotation: 45 } } }
+        }
+    });
+
+    // ---------------- 5) Comunidades (stack) ----------------
+    var comuLabels = Object.keys(data.comuStack || {});
+    // ordena por total desc e limita para não ficar gigante
+    comuLabels.sort(function(a,b){ return (data.comuStack[b].total||0) - (data.comuStack[a].total||0); });
+    var comuTop = comuLabels.slice(0, 20);
+
+    reset('cComu');
+    charts.cComu = new Chart(document.getElementById('chart-comu-stack'), {
+        type: 'bar',
+        data: {
+            labels: comuTop,
+            datasets: [
+                { label:'Clonadas', data: comuTop.map(l => data.comuStack[l].sim||0), backgroundColor:'#00a83a' },
+                { label:'Não clonadas', data: comuTop.map(l => data.comuStack[l].nao||0), backgroundColor:'#ff2a2a' }
+            ]
+        },
+        options: {
+            indexAxis: 'y',
+            plugins: { legend: { position: 'top' } },
+            scales: { x: { stacked:true, beginAtZero:true }, y:{ stacked:true } }
+        }
+    });
+
+    // ---------------- 6) Mês de maturação ----------------
+    var mesesOrder = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    var mesVals = mesesOrder.map(m => (data.mesCount && data.mesCount[m]) ? data.mesCount[m] : 0);
+    reset('cMes');
+    charts.cMes = new Chart(document.getElementById('chart-mes-matura'), {
+        type: 'line',
+        data: {
+            labels: mesesOrder,
+            datasets: [{
+                label: 'Araucárias',
+                data: mesVals,
+                borderColor: '#6f42c1',
+                backgroundColor: 'rgba(111,66,193,0.2)',
+                fill: true,
+                tension: 0.25
+            }]
+        },
+        options: {
+            plugins: { legend: { position: 'top' } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // ---------------- 8) Ano de clonagem ----------------
+    var anoLabels = Object.keys(data.anoClone || {});
+    // ordena numericamente quando possível
+    anoLabels.sort(function(a,b){
+        var na=parseInt(a,10), nb=parseInt(b,10);
+        if (!isNaN(na) && !isNaN(nb)) return na-nb;
+        return String(a).localeCompare(String(b));
+    });
+    reset('cAno');
+    charts.cAno = new Chart(document.getElementById('chart-ano-clone'), {
+        type: 'bar',
+        data: {
+            labels: anoLabels,
+            datasets: [{
+                label: 'Clonadas',
+                data: anoLabels.map(l => data.anoClone[l] || 0),
+                backgroundColor: '#00a83a'
+            }]
+        },
+        options: { plugins:{ legend:{ position:'top' } }, scales:{ y:{ beginAtZero:true } } }
+    });
+
+    // ---------------- 9) Matrizes (top 12) ----------------
+    var mzLabels = Object.keys(data.matrizCount || {});
+    mzLabels.sort(function(a,b){ return (data.matrizCount[b]||0) - (data.matrizCount[a]||0); });
+    var mzTop = mzLabels.slice(0, 12);
+
+    reset('cMz');
+    charts.cMz = new Chart(document.getElementById('chart-matriz'), {
+        type: 'bar',
+        data: {
+            labels: mzTop,
+            datasets: [{
+                label: 'Ocorrências',
+                data: mzTop.map(l => data.matrizCount[l] || 0),
+                backgroundColor: '#20c997'
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            plugins: { legend: { position: 'top' } },
+            scales: { x: { beginAtZero: true } }
+        }
+    });
+}
+
+
+document.querySelectorAll('.stats-tab').forEach(function (t) {
+    t.addEventListener('click', function () {
+        setStatsTab(t.getAttribute('data-tab'));
+    });
+});
+
+// troca de abas (mostra apenas 1 seção por vez)
+function setStatsTab(tabId){
+    // ativa a aba clicada
+    document.querySelectorAll('.stats-tab').forEach(function(el){
+        var isActive = (el.getAttribute('data-tab') === tabId);
+        if (isActive) el.classList.add('active');
+        else el.classList.remove('active');
+    });
+
+    // mostra só a seção correspondente
+    document.querySelectorAll('.stats-section').forEach(function(sec){
+        var isActive = (sec.id === tabId);
+        if (isActive) sec.classList.add('active');
+        else sec.classList.remove('active');
+    });
+
+
+    // Aba interna: pede senha ao entrar, e renderiza lista com nomes por extenso
+    if (tabId === 'tab10'){
+        if (!isStatsUnlocked()){
+            // pede senha apenas quando clicar na aba
+            requestStatsUnlock();
+        }
+        try{
+            // usa a contagem já calculada no computeStats (se existir)
+            if (window.__LAST_MATRIZ_COUNT__) renderMatrizesInternas(window.__LAST_MATRIZ_COUNT__);
+            else renderMatrizesInternas({});
+        }catch(e){}
+    }
+
+    // volta o scroll pro topo (evita ficar "no meio" quando troca)
+    var panel = document.getElementById('stats-panel');
+    if (panel) panel.scrollTop = 0;
+}
+
+
+// atualiza gráficos quando filtros mudarem
+var oldApplyFilters = applyFilters;
+applyFilters = function () {
+    oldApplyFilters();
+    computeStats(currentFilteredFeatures);
+};
+
+// inicial
+computeStats(json_Araucrias2_1.features);
+
+        }
+    
+
+
+
+// ================== RELATÓRIO (PDF) POR PROPRIETÁRIO ==================
+// ============================================================
+// IMPRESSÃO/PDF: troca símbolos por bolinhas e força redesenho
+// ============================================================
+
+function setPrintMode(on) {
+    window.__PRINT_MODE = !!on;
+
+    // fonte de dados atual (respeita filtros) — aplica apenas às ARAUCÁRIAS (não inclui casas)
+    var sourceAraucarias = (currentFilteredFeatures && currentFilteredFeatures.length)
+        ? currentFilteredFeatures
+        : json_Araucrias2_1.features.filter(function(f){
+            var cl = (f.properties && f.properties.Clonada) ? f.properties.Clonada.toString().trim().toLowerCase() : '';
+            return cl !== 'morador';
+        });
+
+    // casas (moradores) — sempre pega do geojson (independe dos filtros)
+    var sourceMoradores = json_Araucrias2_1.features.filter(function(f){
+        var cl = (f.properties && f.properties.Clonada) ? f.properties.Clonada.toString().trim().toLowerCase() : '';
+        return cl === 'morador';
+    });
+
+    layer_araucarias.clearLayers();
+    layer_araucarias.addData(sourceAraucarias);
+    cluster_Araucrias2.refreshClusters();
+
+
+    layer_moradores.clearLayers();
+    layer_moradores.addData(sourceMoradores);
+
+    
+    if (typeof cluster_Moradores !== 'undefined') {
+        cluster_Moradores.refreshClusters();
+    }
+// rótulos: só para araucárias
+    refreshTreeLabels(sourceAraucarias);
+}
+
+
+
+// ================== RELATÓRIO (PDF) — IMPRIMIR ESTATÍSTICAS FILTRADAS (ABA ATIVA) ==================
+var reportBtn = document.getElementById('r-export');
+
+function getActiveStatsTab(){
+    var activeTab = document.querySelector('.stats-tab.active');
+    if (!activeTab) return { tabId: 'tab7', label: 'Resumo' };
+    var id = activeTab.getAttribute('data-tab') || 'tab7';
+    var label = (activeTab.textContent || '').trim() || 'Resumo';
+    // se estiver na aba Relatório, imprime o Resumo por padrão
+    if (id === 'tabRel') return { tabId: 'tab7', label: 'Resumo' };
+    return { tabId: id, label: label };
+}
+
+function getAppliedFilters(){
+    // tenta ler selects de filtros do mapa; só inclui valores realmente aplicados
+    var filters = [];
+
+    function pushIf(sel, label, transform){
+        if (!sel) return;
+        var v = (sel.value || '').toString().trim();
+        if (!v) return;
+        var low = v.toLowerCase();
+        if (low === 'todos' || low === 'todas' || low === 'tudo' || low === 'all') return;
+        filters.push({ label: label, value: transform ? transform(v) : v });
+    }
+
+    // IDs/variáveis já existentes no seu index
+    pushIf(selectProp, 'Proprietário');
+    pushIf(selectClonada, 'Clonagem');
+    pushIf(selectDispoClone, 'Disponibilidade');
+    pushIf(selectComunidade, 'Comunidade');
+    pushIf(selectMesMat, 'Maturação');
+    pushIf(selectAnoClone, 'Ano de clonagem');
+
+    return filters;
+}
+
+function renderFilterBadges(filters){
+    var wrap = document.getElementById('print-filters');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    if (!filters || !filters.length){
+        wrap.textContent = 'Filtros: (nenhum filtro aplicado)';
+        return;
+    }
+    var title = document.createElement('span');
+    title.textContent = 'Filtros: ';
+    title.style.fontWeight = '600';
+    title.style.marginRight = '6px';
+    wrap.appendChild(title);
+
+    filters.forEach(function(f){
+        var pill = document.createElement('span');
+        pill.className = 'pf-pill';
+        pill.textContent = f.label + ': ' + f.value;
+        wrap.appendChild(pill);
+    });
+}
+
+function cloneSectionWithCharts(sectionEl){
+    var clone = sectionEl.cloneNode(true);
+
+    // remove botões de impressão do conteúdo clonado (para não aparecer no PDF)
+    clone.querySelectorAll('.tab-print-btn').forEach(function(b){ b.remove(); });
+
+    // converte canvases em <img> para imprimir fielmente
+    var canvases = sectionEl.querySelectorAll('canvas');
+    canvases.forEach(function(cv){
+        try{
+            var dataUrl = cv.toDataURL('image/png');
+            var img = document.createElement('img');
+            img.src = dataUrl;
+            img.style.maxWidth = '100%';
+            img.style.display = 'block';
+            img.style.margin = '8px auto 0';
+            img.style.pageBreakInside = 'avoid';
+
+            // no clone, troca o canvas correspondente
+            var cloneCv = clone.querySelector('#' + cv.id);
+            if (cloneCv && cloneCv.parentNode){
+                cloneCv.parentNode.replaceChild(img, cloneCv);
+            }
+        }catch(e){
+            // se falhar, deixa o canvas mesmo
+        }
+    });
+
+    return clone;
+}
+
+
+function waitForImagesAndPrint(rootEl, cb){
+    try{
+        var imgs = Array.from((rootEl || document).querySelectorAll('img'));
+        if (!imgs.length) return cb();
+        var pending = imgs.filter(function(im){ return !im.complete; });
+        if (!pending.length) return cb();
+        var done = false;
+        var finish = function(){
+            if (done) return;
+            done = true;
+            cb();
+        };
+        var t = setTimeout(finish, 1200);
+        pending.forEach(function(im){
+            im.addEventListener('load', function(){ 
+                pending = pending.filter(function(x){ return x !== im; });
+                if (!pending.length){ clearTimeout(t); finish(); }
+            }, { once:true });
+            im.addEventListener('error', function(){
+                pending = pending.filter(function(x){ return x !== im; });
+                if (!pending.length){ clearTimeout(t); finish(); }
+            }, { once:true });
+        });
+    }catch(e){ cb(); }
+}
+
+function openStatsPrint(tabIdOverride, labelOverride, onlyTab){
+    var pf = document.getElementById('print-frame');
+    var pc = document.getElementById('print-content');
+    if (!pf || !pc) return;
+
+    // prepara cabeçalho
+    var active = (tabIdOverride ? { tabId: tabIdOverride, label: (labelOverride || "Resumo") } : getActiveStatsTab());
+
+    var ps = document.getElementById('print-subtitle');
+    if (ps){ ps.textContent = ''; ps.style.display = 'none'; }
+
+    document.getElementById('print-date').textContent = 'Gerado em: ' + new Date().toLocaleString('pt-BR');
+
+    var applied = getAppliedFilters();
+    renderFilterBadges(applied);
+
+    function pickPrimaryFilter(filters){
+        if (!filters || !filters.length) return 'Estatísticas (sem filtros)';
+        // prioriza Proprietário, depois Comunidade, depois o primeiro filtro
+        var byLabel = {};
+        filters.forEach(function(f){ byLabel[(f.label||'').toLowerCase()] = f; });
+        var f = byLabel['proprietário'] || byLabel['proprietario'] || byLabel['comunidade'] || filters[0];
+        return (f.label || 'Filtro') + ': ' + (f.value || '');
+    }
+
+    var primaryTitle = pickPrimaryFilter(applied);
+
+    // limpa e injeta conteúdo: sempre inclui Resumo + aba ativa (se não for o Resumo)
+    pc.innerHTML = '';
+
+    if (!onlyTab) {
+    var resumo = document.getElementById('tab7');
+    if (resumo) {
+        var box = document.createElement('div');
+        box.className = 'print-block';
+        var h = document.createElement('h3');
+        h.className = 'print-focus';
+        h.textContent = primaryTitle;
+        box.appendChild(h);
+        box.appendChild(cloneSectionWithCharts(resumo));
+        pc.appendChild(box);
+    }
+}
+
+// Imprime apenas a aba selecionada (ou também a aba ativa, dependendo do modo)
+if (active.tabId !== 'tab7' || onlyTab){
+        var sec = document.getElementById(active.tabId);
+        if (sec){
+            var box2 = document.createElement('div');
+            box2.className = 'print-block';
+            var h2 = document.createElement('h3');
+            h2.textContent = (onlyTab ? (primaryTitle + ' — ' + active.label) : active.label);
+            box2.appendChild(h2);
+            box2.appendChild(cloneSectionWithCharts(sec));
+            pc.appendChild(box2);
+        }
+    }
+
+    // evita o nome do arquivo no cabeçalho do navegador (usa document.title)
+    var oldTitle = document.title;
+    document.title = '';
+
+    // mostra frame e imprime
+    document.body.classList.add('print-mode');
+    pf.style.display = 'block';
+
+    // pequena espera para o browser renderizar as imagens
+    waitForImagesAndPrint(pf, function(){
+        window.print();
+
+        // depois da impressão, volta ao normal
+        pf.style.display = 'none';
+        pc.innerHTML = '';
+        document.body.classList.remove('print-mode');
+        document.title = oldTitle;
+        // restaura o subtítulo no app (não afeta o PDF)
+        if (ps){ ps.style.display = ''; }
+    });
+}
+
+if (reportBtn){
+    reportBtn.addEventListener('click', function(){
+        openStatsPrint();
+    });
+}
+
+
+
+
+
+// Botões "Imprimir esta aba" dentro de cada aba de estatísticas
+document.querySelectorAll('.tab-print-btn').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+        e.preventDefault();
+        var tid = btn.getAttribute('data-tab') || 'tab7';
+        var lab = btn.getAttribute('data-label') || 'Resumo';
+        // imprime Resumo + a aba selecionada (se não for Resumo)
+        openStatsPrint(tid, lab, true);
+    });
+});
+
+
+(function initEditPanelWiring(){
+    // Observação: o painel de edição existe no HTML, mas os handlers podem não estar
+    // presentes em todas as versões do arquivo. Para evitar que um erro aqui impeça
+    // o carregamento do mapa, fazemos a amarração de forma defensiva.
+    var editCloseEl  = document.getElementById('edit-close');
+    var editCancelEl = document.getElementById('edit-cancel');
+
+    if (editCloseEl && typeof window.closeEditPanel === 'function') {
+        editCloseEl.addEventListener('click', window.closeEditPanel);
+    }
+    if (editCancelEl && typeof window.closeEditPanel === 'function') {
+        editCancelEl.addEventListener('click', window.closeEditPanel);
+    }
+})();
+
+(function initStatsPanelToggle(){
+        var statsBtn = document.getElementById('stats-btn');
+        var statsPanel = document.getElementById('stats-panel');
+        var statsClose = document.getElementById('stats-close');
+
+        function openStats(){
+            if (!statsPanel) return;
+            statsPanel.style.display = 'block';
+            if (typeof computeStats === 'function') computeStats(currentFilteredFeatures || []);
+        }
+        function closeStats(){
+            if (!statsPanel) return;
+            statsPanel.style.display = 'none';
+        }
+        if (statsBtn){
+            statsBtn.addEventListener('click', function(){
+                if (!statsPanel) return;
+                var d = statsPanel.style.display;
+                if (d === 'none' || d === '') openStats();
+                else closeStats();
+            });
+        }
+        if (statsClose){
+            statsClose.addEventListener('click', closeStats);
+        }
+
+        // Abas
+        var tabs = document.querySelectorAll('#stats-panel .stats-tab');
+        tabs.forEach(function(t){
+            t.addEventListener('click', function(){
+                var target = t.getAttribute('data-tab');
+                if (target) setStatsTab(target);
+            });
+        });
+        // só o resumo apareça inicialmente
+        panes.forEach(function(p){ p.style.display='none'; });
+        var tab7 = document.getElementById('tab7');
+        if (tab7) tab7.style.display='block';
+    })();
+
+</script>
+</body>
+</html>
